@@ -2,9 +2,11 @@
 
 A Google Keep–style masonry of cards for your Obsidian vault. Browse, capture, pin, color, archive, and filter your notes from one screen — without leaving the grid.
 
-<!-- Add a screenshot here once you have one:
-![Notekeeper screenshot](docs/screenshot.png)
--->
+![Grid view of notes laid out as a masonry of cards, with PINNED and OTHERS sections, varied colors, tags, and inline lists](docs/grid.png)
+
+Click any card to open a full markdown-rendered preview with one-click pin / edit / color / archive / open-in-tab actions:
+
+![Note preview modal showing a Python code snippet with syntax highlighting](docs/modal.png)
 
 ## Features
 
