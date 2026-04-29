@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS = {
   density: 'comfortable',
   colorAsBorder: false,
   tagColors: {},
+  cardColors: {},
   pinnedHeader: true,
   showImages: true,
   autoCollapseSidebars: true,
@@ -325,8 +326,23 @@ class CardsView extends obsidian.ItemView {
     };
     this.registerEvent(this.app.vault.on('modify', refresh));
     this.registerEvent(this.app.vault.on('create', refresh));
-    this.registerEvent(this.app.vault.on('delete', refresh));
-    this.registerEvent(this.app.vault.on('rename', refresh));
+    this.registerEvent(this.app.vault.on('delete', (file) => {
+      const colors = this.plugin.settings.cardColors || {};
+      if (colors[file.path] !== undefined) {
+        delete colors[file.path];
+        this.plugin.saveData(this.plugin.settings);
+      }
+      refresh();
+    }));
+    this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+      const colors = this.plugin.settings.cardColors || {};
+      if (colors[oldPath] !== undefined) {
+        colors[file.path] = colors[oldPath];
+        delete colors[oldPath];
+        this.plugin.saveData(this.plugin.settings);
+      }
+      refresh();
+    }));
     this.registerEvent(this.app.metadataCache.on('changed', refresh));
 
     this.containerEl.tabIndex = -1;
@@ -893,11 +909,14 @@ class CardsView extends obsidian.ItemView {
     if (this.selection.has(file.path)) card.addClass('is-selected');
     if (this.editing === file.path) card.addClass('is-editing-card');
 
-    if (fm && fm.color) {
+    const dataColor = (this.plugin.settings.cardColors || {})[file.path];
+    const fmColor = fm && fm.color;
+    const cardColor = dataColor !== undefined ? dataColor : fmColor;
+    if (cardColor) {
       if (this.plugin.settings.colorAsBorder) {
-        card.style.borderLeft = '4px solid ' + String(fm.color);
+        card.style.borderLeft = '4px solid ' + String(cardColor);
       } else {
-        card.style.background = String(fm.color);
+        card.style.background = String(cardColor);
       }
     } else {
       const tags = fc ? obsidian.getAllTags(fc) : null;
@@ -1190,6 +1209,7 @@ class CardsView extends obsidian.ItemView {
       swatch.addEventListener('click', async (e) => {
         e.stopPropagation();
         await this.setColor(file, c.value);
+        picker.remove();
       });
     }
   }
@@ -1257,12 +1277,30 @@ class CardsView extends obsidian.ItemView {
 
   async setColor(file, color) {
     try {
-      await this.app.fileManager.processFrontMatter(file, (fm) => {
-        if (color === null) delete fm.color;
-        else fm.color = color;
-      });
+      if (!this.plugin.settings.cardColors) this.plugin.settings.cardColors = {};
+      if (color === null) delete this.plugin.settings.cardColors[file.path];
+      else this.plugin.settings.cardColors[file.path] = color;
+      await this.plugin.saveData(this.plugin.settings);
+      this.applyCardColor(file.path, color);
     } catch (err) {
       new obsidian.Notice('Could not set color: ' + err.message);
+    }
+  }
+
+  applyCardColor(path, color) {
+    const cards = this.containerEl.querySelectorAll('.keep-card[data-path]');
+    for (const card of cards) {
+      if (card.dataset.path !== path) continue;
+      card.style.background = '';
+      card.style.borderLeft = '';
+      if (color) {
+        if (this.plugin.settings.colorAsBorder) {
+          card.style.borderLeft = '4px solid ' + color;
+        } else {
+          card.style.background = color;
+        }
+      }
+      break;
     }
   }
 
