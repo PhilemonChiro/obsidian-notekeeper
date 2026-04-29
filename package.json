@@ -1,0 +1,20 @@
+{
+  "name": "obsidian-notekeeper",
+  "version": "0.1.0",
+  "description": "Browse your vault as a Google Keep-style masonry of cards. Quick capture, pin, color, archive, and filter notes by labels.",
+  "author": "Philemon Chiro",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.21.0",
+    "obsidian": "latest",
+    "tslib": "^2.6.0",
+    "typescript": "^5.4.0"
+  }
+}
