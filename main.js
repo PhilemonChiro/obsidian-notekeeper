@@ -1278,8 +1278,7 @@ class CardsView extends obsidian.ItemView {
   async setColor(file, color) {
     try {
       if (!this.plugin.settings.cardColors) this.plugin.settings.cardColors = {};
-      if (color === null) delete this.plugin.settings.cardColors[file.path];
-      else this.plugin.settings.cardColors[file.path] = color;
+      this.plugin.settings.cardColors[file.path] = color;
       await this.plugin.saveData(this.plugin.settings);
       this.applyCardColor(file.path, color);
     } catch (err) {
