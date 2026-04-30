@@ -27,6 +27,8 @@ const DEFAULT_SETTINGS = {
   colorAsBorder: false,
   tagColors: {},
   cardColors: {},
+  pinnedFiles: {},
+  archivedFiles: {},
   pinnedHeader: true,
   showImages: true,
   autoCollapseSidebars: true,
@@ -309,6 +311,7 @@ class CardsView extends obsidian.ItemView {
     this.batches = [];
     this.batchObserver = null;
     this.batchSize = 60;
+    this.activeModal = null;
   }
 
   getViewType() { return VIEW_TYPE_CARDS; }
@@ -327,20 +330,28 @@ class CardsView extends obsidian.ItemView {
     this.registerEvent(this.app.vault.on('modify', refresh));
     this.registerEvent(this.app.vault.on('create', refresh));
     this.registerEvent(this.app.vault.on('delete', (file) => {
-      const colors = this.plugin.settings.cardColors || {};
-      if (colors[file.path] !== undefined) {
-        delete colors[file.path];
-        this.plugin.saveData(this.plugin.settings);
+      let dirty = false;
+      for (const key of ['cardColors', 'pinnedFiles', 'archivedFiles']) {
+        const data = this.plugin.settings[key];
+        if (data && data[file.path] !== undefined) {
+          delete data[file.path];
+          dirty = true;
+        }
       }
+      if (dirty) this.plugin.saveData(this.plugin.settings);
       refresh();
     }));
     this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
-      const colors = this.plugin.settings.cardColors || {};
-      if (colors[oldPath] !== undefined) {
-        colors[file.path] = colors[oldPath];
-        delete colors[oldPath];
-        this.plugin.saveData(this.plugin.settings);
+      let dirty = false;
+      for (const key of ['cardColors', 'pinnedFiles', 'archivedFiles']) {
+        const data = this.plugin.settings[key];
+        if (data && data[oldPath] !== undefined) {
+          data[file.path] = data[oldPath];
+          delete data[oldPath];
+          dirty = true;
+        }
       }
+      if (dirty) this.plugin.saveData(this.plugin.settings);
       refresh();
     }));
     this.registerEvent(this.app.metadataCache.on('changed', refresh));
@@ -761,7 +772,7 @@ class CardsView extends obsidian.ItemView {
       if (folder && !f.path.startsWith(folder + '/') && f.path !== folder) return false;
       const fc = cache.getFileCache(f);
       const fm = fc && fc.frontmatter;
-      const archived = !!(fm && fm.archived);
+      const archived = this.isArchived(f);
 
       if (this.filter.type === 'archive') {
         if (!archived) return false;
@@ -781,14 +792,15 @@ class CardsView extends obsidian.ItemView {
         }
       }
       if (q.color !== null) {
-        if (!fm || (fm.color || '').toLowerCase() !== q.color.toLowerCase()) return false;
+        const dataColor = (this.plugin.settings.cardColors || {})[f.path];
+        const effective = (dataColor !== undefined ? dataColor : (fm && fm.color)) || '';
+        if (String(effective).toLowerCase() !== q.color.toLowerCase()) return false;
       }
       if (q.path !== null) {
         if (!f.path.toLowerCase().includes(q.path)) return false;
       }
       if (q.pinned !== null) {
-        const isP = !!(fm && fm.pinned);
-        if (q.pinned !== isP) return false;
+        if (q.pinned !== this.isPinned(f)) return false;
       }
       if (q.archived !== null) {
         if (q.archived !== archived) return false;
@@ -807,14 +819,27 @@ class CardsView extends obsidian.ItemView {
   }
 
   isPinned(file) {
+    const data = this.plugin.settings.pinnedFiles || {};
+    if (data[file.path] !== undefined) return data[file.path] !== false;
     const fc = this.app.metadataCache.getFileCache(file);
     return !!(fc && fc.frontmatter && fc.frontmatter.pinned);
   }
 
-  pinOrderOf(file) {
+  isArchived(file) {
+    const data = this.plugin.settings.archivedFiles || {};
+    if (data[file.path] !== undefined) return data[file.path] !== false;
     const fc = this.app.metadataCache.getFileCache(file);
-    const v = fc && fc.frontmatter && fc.frontmatter.pinOrder;
-    return typeof v === 'number' ? v : Number.MAX_SAFE_INTEGER;
+    return !!(fc && fc.frontmatter && fc.frontmatter.archived);
+  }
+
+  pinOrderOf(file) {
+    const data = this.plugin.settings.pinnedFiles || {};
+    const v = data[file.path];
+    if (typeof v === 'number') return v;
+    const fc = this.app.metadataCache.getFileCache(file);
+    const fmv = fc && fc.frontmatter && fc.frontmatter.pinOrder;
+    if (typeof fmv === 'number') return fmv;
+    return Number.MAX_SAFE_INTEGER;
   }
 
   makeSection(grid, label) {
@@ -932,7 +957,7 @@ class CardsView extends obsidian.ItemView {
       }
     }
 
-    if (fm && fm.pinned) card.addClass('keep-card--pinned');
+    if (this.isPinned(file)) card.addClass('keep-card--pinned');
 
     const cb = card.createEl('input', {
       cls: 'keep-card-checkbox',
@@ -957,7 +982,7 @@ class CardsView extends obsidian.ItemView {
     });
     card.addEventListener('dragend', () => card.removeClass('is-dragging'));
 
-    if (fm && fm.pinned) {
+    if (this.isPinned(file)) {
       card.addEventListener('dragover', (e) => {
         const path = e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('application/x-obsidian-path');
         if (!path) return;
@@ -1066,11 +1091,14 @@ class CardsView extends obsidian.ItemView {
       badge.createSpan({ text: String(bl) });
     }
 
+    const isPinnedNow = this.isPinned(file);
+    const isArchivedNow = this.isArchived(file);
+
     const actions = card.createDiv({ cls: 'keep-card-actions' });
     this.makeAction(
       actions,
-      fm && fm.pinned ? 'pin-off' : 'pin',
-      fm && fm.pinned ? 'Unpin' : 'Pin',
+      isPinnedNow ? 'pin-off' : 'pin',
+      isPinnedNow ? 'Unpin' : 'Pin',
       async () => {
         await this.togglePinned(file);
       }
@@ -1083,8 +1111,8 @@ class CardsView extends obsidian.ItemView {
     });
     this.makeAction(
       actions,
-      fm && fm.archived ? 'archive-restore' : 'archive',
-      fm && fm.archived ? 'Unarchive' : 'Archive',
+      isArchivedNow ? 'archive-restore' : 'archive',
+      isArchivedNow ? 'Unarchive' : 'Archive',
       async () => {
         await this.toggleArchived(file);
       }
@@ -1131,7 +1159,21 @@ class CardsView extends obsidian.ItemView {
 
   // -------------------- note preview --------------------
   openNotePreview(file) {
-    new NotePreviewModal(this.app, this.plugin, this, file).open();
+    const modal = new NotePreviewModal(this.app, this.plugin, this, file);
+    this.activeModal = modal;
+    const origOnClose = modal.onClose.bind(modal);
+    const view = this;
+    modal.onClose = function () {
+      if (view.activeModal === modal) view.activeModal = null;
+      return origOnClose();
+    };
+    modal.open();
+  }
+
+  refreshActiveModal(file) {
+    if (this.activeModal && this.activeModal.file && this.activeModal.file.path === file.path) {
+      this.activeModal.rerender();
+    }
   }
 
   // -------------------- inline edit --------------------
@@ -1217,28 +1259,30 @@ class CardsView extends obsidian.ItemView {
   // -------------------- frontmatter mutations --------------------
   async togglePinned(file) {
     try {
-      let order = null;
-      await this.app.fileManager.processFrontMatter(file, (fm) => {
-        if (fm.pinned) {
-          delete fm.pinned;
-          delete fm.pinOrder;
-        } else {
-          fm.pinned = true;
-          if (typeof fm.pinOrder !== 'number') {
-            const max = this.maxPinOrder();
-            fm.pinOrder = max + 1;
-            order = fm.pinOrder;
-          }
-        }
-      });
+      if (!this.plugin.settings.pinnedFiles) this.plugin.settings.pinnedFiles = {};
+      const data = this.plugin.settings.pinnedFiles;
+      if (this.isPinned(file)) {
+        data[file.path] = false;
+      } else {
+        data[file.path] = this.maxPinOrder() + 1;
+      }
+      await this.plugin.saveData(this.plugin.settings);
+      this.scheduleRender();
+      this.refreshActiveModal(file);
     } catch (err) {
       new obsidian.Notice('Could not pin: ' + err.message);
     }
   }
 
   maxPinOrder() {
+    const data = this.plugin.settings.pinnedFiles || {};
     let m = 0;
+    for (const k in data) {
+      const v = data[k];
+      if (typeof v === 'number' && v > m) m = v;
+    }
     for (const f of this.app.vault.getMarkdownFiles()) {
+      if (data[f.path] !== undefined) continue;
       const fc = this.app.metadataCache.getFileCache(f);
       const v = fc && fc.frontmatter && fc.frontmatter.pinOrder;
       if (typeof v === 'number' && v > m) m = v;
@@ -1248,10 +1292,17 @@ class CardsView extends obsidian.ItemView {
 
   async swapPinOrder(a, b) {
     try {
-      const aOrder = this.pinOrderOf(a);
-      const bOrder = this.pinOrderOf(b);
-      await this.app.fileManager.processFrontMatter(a, (fm) => { fm.pinOrder = bOrder === Number.MAX_SAFE_INTEGER ? this.maxPinOrder() + 1 : bOrder; });
-      await this.app.fileManager.processFrontMatter(b, (fm) => { fm.pinOrder = aOrder === Number.MAX_SAFE_INTEGER ? this.maxPinOrder() + 1 : aOrder; });
+      if (!this.plugin.settings.pinnedFiles) this.plugin.settings.pinnedFiles = {};
+      const data = this.plugin.settings.pinnedFiles;
+      let aOrder = this.pinOrderOf(a);
+      let bOrder = this.pinOrderOf(b);
+      const max = this.maxPinOrder();
+      if (aOrder === Number.MAX_SAFE_INTEGER) aOrder = max + 1;
+      if (bOrder === Number.MAX_SAFE_INTEGER) bOrder = max + 2;
+      data[a.path] = bOrder;
+      data[b.path] = aOrder;
+      await this.plugin.saveData(this.plugin.settings);
+      this.scheduleRender();
     } catch (err) {
       new obsidian.Notice('Reorder failed: ' + err.message);
     }
@@ -1259,16 +1310,19 @@ class CardsView extends obsidian.ItemView {
 
   async toggleArchived(file) {
     try {
-      const wasArchived = !!(this.app.metadataCache.getFileCache(file) && this.app.metadataCache.getFileCache(file).frontmatter && this.app.metadataCache.getFileCache(file).frontmatter.archived);
-      await this.app.fileManager.processFrontMatter(file, (fm) => {
-        if (fm.archived) delete fm.archived;
-        else fm.archived = true;
-      });
+      if (!this.plugin.settings.archivedFiles) this.plugin.settings.archivedFiles = {};
+      const data = this.plugin.settings.archivedFiles;
+      const wasArchived = this.isArchived(file);
+      data[file.path] = !wasArchived;
+      await this.plugin.saveData(this.plugin.settings);
+      this.scheduleRender();
+      this.refreshActiveModal(file);
       this.showUndoToast(wasArchived ? 'Unarchived' : 'Archived', async () => {
-        await this.app.fileManager.processFrontMatter(file, (fm) => {
-          if (wasArchived) fm.archived = true;
-          else delete fm.archived;
-        });
+        const d = this.plugin.settings.archivedFiles;
+        d[file.path] = wasArchived;
+        await this.plugin.saveData(this.plugin.settings);
+        this.scheduleRender();
+        this.refreshActiveModal(file);
       });
     } catch (err) {
       new obsidian.Notice('Could not archive: ' + err.message);
@@ -1281,6 +1335,7 @@ class CardsView extends obsidian.ItemView {
       this.plugin.settings.cardColors[file.path] = color;
       await this.plugin.saveData(this.plugin.settings);
       this.applyCardColor(file.path, color);
+      this.refreshActiveModal(file);
     } catch (err) {
       new obsidian.Notice('Could not set color: ' + err.message);
     }
@@ -1325,7 +1380,8 @@ class CardsView extends obsidian.ItemView {
   // -------------------- context menu --------------------
   openContextMenu(evt, file) {
     const menu = new obsidian.Menu();
-    const fm = (this.app.metadataCache.getFileCache(file) || {}).frontmatter || {};
+    const isPinnedNow = this.isPinned(file);
+    const isArchivedNow = this.isArchived(file);
 
     menu.addItem((mi) =>
       mi.setTitle('Open in new tab').setIcon('external-link').onClick(() => {
@@ -1343,14 +1399,14 @@ class CardsView extends obsidian.ItemView {
     );
     menu.addItem((mi) =>
       mi
-        .setTitle(fm.pinned ? 'Unpin' : 'Pin')
-        .setIcon(fm.pinned ? 'pin-off' : 'pin')
+        .setTitle(isPinnedNow ? 'Unpin' : 'Pin')
+        .setIcon(isPinnedNow ? 'pin-off' : 'pin')
         .onClick(() => this.togglePinned(file))
     );
     menu.addItem((mi) =>
       mi
-        .setTitle(fm.archived ? 'Unarchive' : 'Archive')
-        .setIcon(fm.archived ? 'archive-restore' : 'archive')
+        .setTitle(isArchivedNow ? 'Unarchive' : 'Archive')
+        .setIcon(isArchivedNow ? 'archive-restore' : 'archive')
         .onClick(() => this.toggleArchived(file))
     );
     menu.addSeparator();
@@ -1661,15 +1717,15 @@ class NotePreviewModal extends obsidian.Modal {
   }
 
   renderHeader() {
-    const fc = this.app.metadataCache.getFileCache(this.file);
-    const fm = (fc && fc.frontmatter) || {};
+    const isPinnedNow = this.view.isPinned(this.file);
+    const isArchivedNow = this.view.isArchived(this.file);
 
     const row = this.titleEl.createDiv({ cls: 'keep-modal-titlerow' });
     row.createDiv({ cls: 'keep-modal-title', text: this.file.basename });
 
     const actions = row.createDiv({ cls: 'keep-modal-actions' });
 
-    this.makeAction(actions, fm.pinned ? 'pin-off' : 'pin', fm.pinned ? 'Unpin' : 'Pin', async () => {
+    this.makeAction(actions, isPinnedNow ? 'pin-off' : 'pin', isPinnedNow ? 'Unpin' : 'Pin', async () => {
       await this.view.togglePinned(this.file);
     });
 
@@ -1695,7 +1751,7 @@ class NotePreviewModal extends obsidian.Modal {
       menu.showAtMouseEvent(e);
     });
 
-    this.makeAction(actions, fm.archived ? 'archive-restore' : 'archive', fm.archived ? 'Unarchive' : 'Archive', async () => {
+    this.makeAction(actions, isArchivedNow ? 'archive-restore' : 'archive', isArchivedNow ? 'Unarchive' : 'Archive', async () => {
       await this.view.toggleArchived(this.file);
     });
 

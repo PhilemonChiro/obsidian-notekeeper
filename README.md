@@ -50,7 +50,7 @@ pinOrder: 1
 - `tags` populate the searchable label list
 - `pinOrder` (number) controls the order among pinned cards; updated automatically when you drag
 
-All of these mutations happen via Obsidian's safe `processFrontMatter` API, so they preserve your existing frontmatter.
+By default Notekeeper stores `pinned`, `archived`, and `color` in its own `data.json` keyed by file path — not in your notes' frontmatter — so toggling them doesn't touch the file or bump its mtime. Frontmatter values are still read as a fallback so notes you've authored manually with these fields keep working.
 
 ## Search syntax
 
