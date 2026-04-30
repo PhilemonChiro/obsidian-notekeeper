@@ -109,6 +109,20 @@ Open Obsidian → Settings → Community plugins → Browse, search "Notekeeper"
 2. Copy them into `<vault>/.obsidian/plugins/notekeeper/`
 3. Reload Obsidian and enable Notekeeper in Settings → Community plugins
 
+## Development
+
+Source lives in `main.ts`. The committed `main.js` is what Obsidian loads at runtime; rebuild it with esbuild after editing `main.ts`:
+
+```bash
+npm install
+npm run build      # type-check + bundle to main.js
+npm run dev        # rebuild on save
+```
+
+`main.ts`, `manifest.json`, and `styles.css` are the authored sources. The `main.js` artifact is produced by the build and committed alongside (so manual installs work without a build step).
+
+PRs welcome. The codebase is single-file by design — keep it that way unless the addition is large enough to warrant its own module.
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).

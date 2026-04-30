@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "node esbuild.config.mjs production"
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
   },
   "devDependencies": {
     "@types/node": "^20",
