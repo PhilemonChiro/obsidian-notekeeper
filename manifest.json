@@ -1,8 +1,8 @@
 {
   "id": "notekeeper",
   "name": "Notekeeper",
-  "version": "0.1.1",
-  "minAppVersion": "1.4.0",
+  "version": "0.1.2",
+  "minAppVersion": "1.7.2",
   "description": "Browse your vault as a Google Keep-style masonry of cards. Quick capture, pin, color, archive, and filter notes by labels — sticky-note style.",
   "author": "Philemon Chiro",
   "authorUrl": "https://github.com/PhilemonChiro",

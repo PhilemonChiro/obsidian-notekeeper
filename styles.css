@@ -1007,6 +1007,69 @@
   border-color: var(--text-accent);
 }
 
+/* ========== shared modal helpers ========== */
+.keep-modal-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.keep-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.keep-modal-spacer {
+  flex: 1;
+}
+
+.keep-modal-input {
+  width: 100%;
+}
+
+.keep-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.keep-modal-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.keep-modal-color-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.keep-modal-color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.keep-tag-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+}
+
+.keep-confirm-message {
+  margin: 8px 0 4px;
+  color: var(--text-muted);
+}
+
 /* ========== batch sentinel ========== */
 .keep-batch-sentinel {
   height: 1px;

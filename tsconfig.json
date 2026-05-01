@@ -13,7 +13,8 @@
     "strictNullChecks": false,
     "lib": ["DOM", "ES2020"],
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "downlevelIteration": true
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "main.js"]
