@@ -43,6 +43,12 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.theme-light .keep-cards-search-wrap {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
 .keep-cards-search-wrap:focus-within {
   border-color: var(--text-accent);
 }
@@ -87,6 +93,13 @@
   flex-shrink: 0;
   padding: 0;
   transition: background 0.12s ease, color 0.12s ease;
+}
+
+.theme-light .keep-cards-sort-btn,
+.theme-light .keep-cards-toolbar {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .keep-cards-sort-btn:hover {
@@ -218,6 +231,17 @@
 .keep-cards-capture-wrap:focus-within {
   border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+}
+
+.theme-light .keep-cards-capture-wrap {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.theme-light .keep-cards-capture-wrap:focus-within {
+  border-color: rgba(0, 0, 0, 0.22);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 /* Title field — collapsed by default, slides in when capture is focused */
@@ -759,6 +783,82 @@
   color: var(--text-normal);
 }
 
+/* ===== Colored cards ===== always force light text since the COLORS palette
+   is dark-tone (designed to read against white text in either theme). */
+.keep-card.has-card-color {
+  color: rgba(255, 255, 255, 0.95);
+  border-color: transparent;
+}
+
+.keep-card.has-card-color .keep-card-title {
+  color: #fff;
+}
+
+.keep-card.has-card-color .keep-card-body,
+.keep-card.has-card-color .keep-card-body p,
+.keep-card.has-card-color .keep-card-body li,
+.keep-card.has-card-color .keep-card-body h1,
+.keep-card.has-card-color .keep-card-body h2,
+.keep-card.has-card-color .keep-card-body h3,
+.keep-card.has-card-color .keep-card-body h4 {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.keep-card.has-card-color .keep-card-body a {
+  color: rgba(255, 255, 255, 0.92);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+}
+
+.keep-card.has-card-color .keep-card-body code {
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.keep-card.has-card-color .keep-card-body pre {
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.keep-card.has-card-color .keep-card-body blockquote {
+  border-left-color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.keep-card.has-card-color .keep-card-tag {
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.keep-card.has-card-color .keep-card-tag:hover {
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+}
+
+.keep-card.has-card-color .keep-card-meta,
+.keep-card.has-card-color .keep-card-backlinks {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.keep-card.has-card-color .keep-card-action {
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.keep-card.has-card-color .keep-card-action:hover {
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+}
+
+.keep-card.has-card-color .keep-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+}
+
 /* ========== inline editor ========== */
 .keep-card-editor {
   width: 100%;
@@ -1038,10 +1138,10 @@
   margin-bottom: 8px;
 }
 
-/* When the note has a color, paint the modal in it and make the inner panels transparent */
-.keep-note-modal.has-note-color .modal-content,
-.keep-note-modal.has-note-color .modal-bg,
-.keep-note-modal.has-note-color .modal-container {
+/* When the note has a color, paint the modal in it and make the inner content
+   transparent so the color shows through. Keep .modal-bg (the dim backdrop)
+   alone so the rest of the UI stays dimmed behind the modal. */
+.keep-note-modal.has-note-color .modal-content {
   background: transparent !important;
 }
 
@@ -1063,6 +1163,31 @@
 .keep-note-modal.has-note-color .keep-card-tag {
   background: rgba(0, 0, 0, 0.25);
   color: rgba(255, 255, 255, 0.85);
+}
+
+.keep-note-modal.has-note-color .keep-modal-title {
+  color: #fff;
+}
+
+.keep-note-modal.has-note-color .keep-modal-action-btn {
+  background: rgba(0, 0, 0, 0.22) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  border: none !important;
+}
+
+.keep-note-modal.has-note-color .keep-modal-action-btn:hover {
+  background: rgba(0, 0, 0, 0.4) !important;
+  color: #fff !important;
+}
+
+.keep-note-modal.has-note-color .keep-modal-editor {
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.keep-note-modal.has-note-color .keep-modal-editor:focus {
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .keep-modal-titlerow {
@@ -1285,6 +1410,18 @@
 
 /* Backgrounds */
 
+/* Theme (auto): inherits Obsidian's theme. Quietest option.
+   Adapts to light/dark out of the box. */
+.keep-cards-grid.wall-theme {
+  background-color: var(--background-primary);
+  background-image:
+    linear-gradient(var(--background-modifier-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--background-modifier-border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-blend-mode: normal;
+  opacity: 1;
+}
+
 /* Cork: layered dot textures + warm noise */
 .keep-cards-grid.wall-cork {
   background-color: #8a5f3a;
@@ -1432,6 +1569,45 @@
   z-index: 5;
 }
 
+/* ===== Light-theme overrides for dark-only backgrounds =====
+   Slate, blueprint, chalkboard, cork are designed for dark themes.
+   Lighten them in light mode so the wall doesn't crash into the rest of the UI. */
+
+.theme-light .keep-cards-grid.wall-slate {
+  background-color: #c9ccd1;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+}
+
+.theme-light .keep-cards-grid.wall-blueprint {
+  background-color: #4d80b8;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.32) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.32) 1px, transparent 1px);
+}
+
+.theme-light .keep-cards-grid.wall-chalkboard {
+  background-color: #6c8a6c;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.06) 0.8px, transparent 1.2px),
+    radial-gradient(rgba(255, 255, 255, 0.04) 0.5px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+}
+
+.theme-light .keep-cards-grid.wall-cork {
+  background-color: #c9a073;
+  background-image:
+    radial-gradient(rgba(255, 240, 220, 0.10) 0.7px, transparent 0.7px),
+    radial-gradient(rgba(80, 50, 20, 0.18) 1.2px, transparent 1.2px),
+    radial-gradient(rgba(80, 50, 20, 0.10) 1.6px, transparent 1.6px);
+}
+
 /* Light wall backgrounds: lighter shadow against the lighter surface */
 .keep-cards-grid.wall-whiteboard .keep-card,
 .keep-cards-grid.wall-paper .keep-card,
@@ -1550,4 +1726,230 @@
 @media (max-width: 700px) {
   .keep-cards-sidebar { display: none; }
   .keep-cards-search { width: 160px; }
+}
+
+/* ============================================================
+ * LIGHT-THEME OVERRIDES
+ *
+ * Obsidian's modifier-hover and modifier-border variables are quite
+ * subtle in the default light theme — almost invisible on neutral
+ * surfaces. The rules below give specific surfaces a stronger
+ * contrast in light mode while leaving dark mode untouched.
+ * ============================================================ */
+
+/* Cards — slightly stronger border + softer shadow in light mode */
+.theme-light .keep-card {
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.theme-light .keep-card:hover {
+  border-color: rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.theme-light .keep-card.is-selected,
+.theme-light .keep-card.is-focused {
+  outline-color: var(--text-accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+}
+
+/* Card hover-action buttons — beefier hover background in light mode */
+.theme-light .keep-card-action {
+  color: var(--text-muted);
+}
+.theme-light .keep-card-action:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-normal);
+}
+
+/* Card tag chips — uses modifier-hover by default; bump contrast */
+.theme-light .keep-card-tag {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-muted);
+}
+.theme-light .keep-card-tag:hover {
+  background: rgba(0, 0, 0, 0.12);
+  color: var(--text-normal);
+}
+
+/* Card checkbox visible in light too */
+.theme-light .keep-card-checkbox {
+  accent-color: var(--text-accent);
+}
+
+/* Active filter chip — barely visible against light theme; punch it up */
+.theme-light .keep-cards-active-filter {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.16);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: var(--text-normal);
+}
+.theme-light .keep-cards-active-filter-x:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-normal);
+}
+
+/* Density toolbar segmented buttons — currently inherit toolbar bg */
+.theme-light .keep-cards-tb-btn {
+  color: var(--text-muted);
+}
+.theme-light .keep-cards-tb-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-normal);
+}
+.theme-light .keep-cards-tb-btn.is-active {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-accent);
+}
+
+/* Sort + archive single buttons */
+.theme-light .keep-cards-sort-btn {
+  color: var(--text-muted);
+}
+.theme-light .keep-cards-sort-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-normal);
+}
+.theme-light .keep-cards-sort-btn.is-active {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+/* Bulk action floating bar — already styled, but light theme needs more shadow */
+.theme-light .keep-cards-bulk {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+.theme-light .keep-cards-bulk-btn {
+  color: var(--text-normal);
+}
+.theme-light .keep-cards-bulk-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-accent);
+}
+
+/* Capture action row inside the wrap */
+.theme-light .keep-cards-capture-action {
+  color: var(--text-muted);
+}
+.theme-light .keep-cards-capture-action:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-normal);
+}
+.theme-light .keep-cards-capture-action.is-active {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text-accent);
+}
+.theme-light .keep-cards-capture-discard:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-normal);
+}
+
+/* Empty state text */
+.theme-light .keep-cards-empty {
+  color: var(--text-muted);
+}
+
+/* Note-preview modal (non-colored) action buttons */
+.theme-light .keep-note-modal:not(.has-note-color) .keep-modal-action-btn {
+  color: var(--text-muted);
+}
+.theme-light .keep-note-modal:not(.has-note-color) .keep-modal-action-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--text-normal);
+}
+
+/* Sidebar items would inherit muted; the wall switcher dropdown menu is
+   theme-aware via Obsidian's own classes, so no override needed there. */
+
+/* ============================================================
+ * COLORED-SURFACE OVERRIDES (theme-agnostic)
+ *
+ * When the capture wrap is tinted with a chosen color, every text/icon
+ * inside it must flip to light to read against the dark color palette.
+ * Same logic as has-card-color on the cards / has-note-color on the modal.
+ * ============================================================ */
+
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-title,
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture {
+  color: #fff !important;
+}
+
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture::placeholder,
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-title::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-title {
+  border-bottom-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-action {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-action:hover {
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+}
+
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-action.is-active {
+  background: rgba(0, 0, 0, 0.32);
+  color: #fff;
+}
+
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-discard {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-discard:hover {
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+}
+
+/* ============================================================
+ * REMAINING DARK-MODE TWEAKS
+ * ============================================================ */
+
+/* On wall light backgrounds in dark theme, soften card outline so dark cards
+   on white walls don't look harsh. */
+.theme-dark .keep-cards-grid.wall-whiteboard .keep-card,
+.theme-dark .keep-cards-grid.wall-paper .keep-card,
+.theme-dark .keep-cards-grid.wall-graph .keep-card,
+.theme-dark .keep-cards-grid.wall-linen .keep-card {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Color picker swatches in light mode get a stronger border so the lighter
+   colors (Default / Sand / Peach) don't blend into the white panel */
+.theme-light .keep-color-swatch {
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+/* Skeleton shimmer in light mode reads better against light cards */
+.theme-light .keep-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06) 0%,
+    rgba(0, 0, 0, 0.12) 50%,
+    rgba(0, 0, 0, 0.06) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Wall card hover lift shadow in light mode should be lighter than dark mode default */
+.theme-light .keep-cards-grid.is-wall .keep-card {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+.theme-light .keep-cards-grid.is-wall .keep-card:hover {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+/* Backlinks badge readability in both themes */
+.keep-card.has-card-color .keep-card-backlinks {
+  color: rgba(255, 255, 255, 0.7);
+}
+.theme-light .keep-card-backlinks {
+  color: var(--text-muted);
 }

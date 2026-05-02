@@ -63,7 +63,7 @@ var DEFAULT_SETTINGS = {
   sortMode: "mtime-desc",
   walls: {},
   currentWallId: null,
-  wallBackground: "slate"
+  wallBackground: "theme"
 };
 var SORT_LABELS = {
   "mtime-desc": "Modified \xB7 newest",
@@ -564,9 +564,11 @@ var CardsView = class extends obsidian.ItemView {
             if (c.value) {
               colorBtn.setCssStyles({ background: c.value, color: "var(--text-on-accent)" });
               wrap.setCssStyles({ background: c.value });
+              wrap.addClass("has-pick-color");
             } else {
               colorBtn.setCssStyles({ background: "", color: "" });
               wrap.setCssStyles({ background: "" });
+              wrap.removeClass("has-pick-color");
             }
           })
         );
@@ -602,6 +604,7 @@ var CardsView = class extends obsidian.ItemView {
       pinBtn.removeClass("is-active");
       colorBtn.setCssStyles({ background: "", color: "" });
       wrap.setCssStyles({ background: "" });
+      wrap.removeClass("has-pick-color");
       grow();
     };
     const submit = () => {
@@ -1144,6 +1147,7 @@ var CardsView = class extends obsidian.ItemView {
         card.setCssStyles({ borderLeft: `4px solid ${String(cardColor)}` });
       } else {
         card.setCssStyles({ background: String(cardColor) });
+        card.addClass("has-card-color");
       }
     } else {
       const tags = fc ? obsidian.getAllTags(fc) : null;
@@ -1152,7 +1156,10 @@ var CardsView = class extends obsidian.ItemView {
           const c = this.plugin.settings.tagColors[t.replace(/^#/, "")];
           if (c) {
             if (this.plugin.settings.colorAsBorder) card.setCssStyles({ borderLeft: `4px solid ${c}` });
-            else card.setCssStyles({ background: c });
+            else {
+              card.setCssStyles({ background: c });
+              card.addClass("has-card-color");
+            }
             break;
           }
         }
@@ -1523,11 +1530,13 @@ var CardsView = class extends obsidian.ItemView {
     for (const card of cards) {
       if (card.dataset.path !== path) continue;
       card.setCssStyles({ background: "", borderLeft: "" });
+      card.removeClass("has-card-color");
       if (color) {
         if (this.plugin.settings.colorAsBorder) {
           card.setCssStyles({ borderLeft: `4px solid ${color}` });
         } else {
           card.setCssStyles({ background: color });
+          card.addClass("has-card-color");
         }
       }
       break;
@@ -2319,6 +2328,7 @@ var KeepCardsSettingTab = class extends obsidian.PluginSettingTab {
     );
     new obsidian.Setting(containerEl).setName("Wall background").setDesc("Background texture used in wall mode.").addDropdown((dd) => {
       const options = {
+        theme: "Theme (auto)",
         cork: "Cork",
         whiteboard: "Whiteboard",
         slate: "Slate",

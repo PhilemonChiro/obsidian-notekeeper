@@ -1,6 +1,6 @@
 {
   "name": "obsidian-notekeeper",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Browse your vault as a Google Keep-style masonry of cards. Quick capture, pin, color, archive, and filter notes by labels.",
   "author": "Philemon Chiro",
   "license": "MIT",
