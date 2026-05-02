@@ -207,7 +207,7 @@
   width: 100%;
   max-width: 600px;
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   border-radius: 10px;
   border: 1px solid var(--background-modifier-border);
   background: var(--background-secondary);
@@ -220,21 +220,143 @@
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
 }
 
+/* Title field — collapsed by default, slides in when capture is focused */
+.keep-cards-capture-title {
+  display: none;
+  padding: 14px 18px 10px !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--text-normal) !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  font-family: inherit !important;
+  outline: none !important;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.4 !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.keep-cards-capture-title::placeholder {
+  font-weight: 500 !important;
+  font-size: 20px !important;
+  color: var(--text-faint) !important;
+}
+
+/* Divider between title and body, only when both visible */
+.keep-cards-capture-wrap:focus-within .keep-cards-capture-title {
+  border-bottom: 1px solid var(--background-modifier-border) !important;
+}
+
+.keep-cards-capture-title::placeholder {
+  color: var(--text-faint);
+}
+
+.keep-cards-capture-wrap:focus-within .keep-cards-capture-title {
+  display: block;
+}
+
 .keep-cards-capture {
-  flex: 1;
-  padding: 12px 16px;
-  border: none;
-  background: transparent;
+  width: 100%;
+  padding: 12px 18px;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
   color: var(--text-normal);
   font-size: 14px;
   resize: none;
   font-family: inherit;
-  line-height: 1.5;
+  line-height: 1.55;
   outline: none;
+  box-sizing: border-box;
+}
+
+/* When the capture is expanded, the body has at least 3 visible lines */
+.keep-cards-capture-wrap:focus-within .keep-cards-capture {
+  min-height: calc(3 * 1.55em + 24px);
 }
 
 .keep-cards-capture::placeholder {
   color: var(--text-faint);
+}
+
+/* Action row — collapsed by default, expands on focus */
+.keep-cards-capture-actions {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 6px;
+}
+
+.keep-cards-capture-wrap:focus-within .keep-cards-capture-actions {
+  display: flex;
+}
+
+.keep-cards-capture-actions-spacer {
+  flex: 1;
+}
+
+.keep-cards-capture-action {
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.keep-cards-capture-action:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.keep-cards-capture-action.is-active {
+  background: var(--background-modifier-hover);
+  color: var(--text-accent);
+}
+
+.keep-cards-capture-action svg,
+.keep-cards-capture-action .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.keep-cards-capture-close {
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+}
+
+.keep-cards-capture-discard {
+  background: transparent;
+  border: none;
+  padding: 9px 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  font-family: inherit;
+  margin-right: 4px;
+}
+
+.keep-cards-capture-discard:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
 }
 
 /* shared icon sizing across buttons */
@@ -758,43 +880,53 @@
 /* ========== bulk actions bar ========== */
 .keep-cards-bulk {
   position: fixed;
-  bottom: 24px;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
-  border-radius: 32px;
-  padding: 6px 12px;
+  border-radius: 36px;
+  padding: 8px 14px 8px 18px;
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
   z-index: 100;
 }
 
 .keep-cards-bulk-count {
-  padding: 0 8px;
+  padding: 0 10px 0 0;
   color: var(--text-normal);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  margin-right: 4px;
+  border-right: 1px solid var(--background-modifier-border);
 }
 
 .keep-cards-bulk-btn {
   background: transparent;
   border: none;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  color: var(--text-muted);
+  color: var(--text-normal);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 
 .keep-cards-bulk-btn:hover {
   background: var(--background-modifier-hover);
-  color: var(--text-normal);
+  color: var(--text-accent);
+}
+
+.keep-cards-bulk-btn svg,
+.keep-cards-bulk-btn .svg-icon {
+  width: 20px !important;
+  height: 20px !important;
 }
 
 /* ========== undo toast ========== */
@@ -896,8 +1028,41 @@
   max-height: 88vh;
 }
 
+/* Hide Obsidian's built-in close (×) — overlaps the action row, and Esc /
+   click-outside / the open-in-tab button already cover closing. */
+.keep-note-modal .modal-close-button {
+  display: none;
+}
+
 .keep-note-modal .modal-title {
   margin-bottom: 8px;
+}
+
+/* When the note has a color, paint the modal in it and make the inner panels transparent */
+.keep-note-modal.has-note-color .modal-content,
+.keep-note-modal.has-note-color .modal-bg,
+.keep-note-modal.has-note-color .modal-container {
+  background: transparent !important;
+}
+
+.keep-note-modal.has-note-color .keep-modal-md {
+  color: var(--text-on-accent, var(--text-normal));
+}
+
+.keep-note-modal.has-note-color .keep-modal-md pre,
+.keep-note-modal.has-note-color .keep-modal-md code {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.keep-note-modal.has-note-color .keep-modal-meta,
+.keep-note-modal.has-note-color .keep-modal-path {
+  color: rgba(255, 255, 255, 0.6);
+  border-top-color: rgba(255, 255, 255, 0.15);
+}
+
+.keep-note-modal.has-note-color .keep-card-tag {
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .keep-modal-titlerow {
@@ -1212,6 +1377,53 @@
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
   transition: box-shadow 0.18s ease, transform 0.18s ease;
   transform-origin: 50% 50%;
+  overflow: visible;
+}
+
+/* 3D pushpin on pinned wall cards */
+.keep-cards-grid.is-wall .keep-card--pinned {
+  border-color: transparent;
+}
+
+.keep-cards-grid.is-wall .keep-card--pinned::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  right: 18px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 35%),
+    radial-gradient(circle at 50% 50%, #ff5a5f 0%, #b1232a 70%, #6e1118 100%);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.45),
+    inset -1px -2px 3px rgba(0, 0, 0, 0.35);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.keep-cards-grid.is-wall .keep-card--pinned::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 23px;
+  width: 6px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.28);
+  filter: blur(3px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* On lighter backgrounds: smaller, softer pin shadow */
+.keep-cards-grid.wall-whiteboard .keep-card--pinned::after,
+.keep-cards-grid.wall-paper .keep-card--pinned::after,
+.keep-cards-grid.wall-graph .keep-card--pinned::after,
+.keep-cards-grid.wall-linen .keep-card--pinned::after {
+  background: rgba(0, 0, 0, 0.18);
+  filter: blur(2px);
 }
 
 .keep-cards-grid.is-wall .keep-card:hover {

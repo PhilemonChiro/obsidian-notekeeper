@@ -639,62 +639,178 @@ class CardsView extends obsidian.ItemView {
     this.renderBulkActions(container);
   }
 
-  renderCapture(header) {
+  renderCapture(header: HTMLElement): void {
     const wrap = header.createDiv({ cls: 'keep-cards-capture-wrap' });
+
+    const titleInput = wrap.createEl('input', {
+      cls: 'keep-cards-capture-title',
+      attr: { type: 'text', placeholder: 'Title' },
+    });
+
     const ta = wrap.createEl('textarea', {
       cls: 'keep-cards-capture',
       attr: { placeholder: 'Take a note…', rows: '1' },
     });
 
+    const actions = wrap.createDiv({ cls: 'keep-cards-capture-actions' });
+    const state = { willPin: false, color: null as string | null };
+
+    const pinBtn = actions.createEl('button', {
+      cls: 'keep-cards-capture-action',
+      attr: { type: 'button', 'aria-label': 'Pin', title: 'Pin' },
+    });
+    obsidian.setIcon(pinBtn, 'pin');
+    pinBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    pinBtn.addEventListener('click', () => {
+      state.willPin = !state.willPin;
+      pinBtn.toggleClass('is-active', state.willPin);
+    });
+
+    const colorBtn = actions.createEl('button', {
+      cls: 'keep-cards-capture-action',
+      attr: { type: 'button', 'aria-label': 'Color', title: 'Color' },
+    });
+    obsidian.setIcon(colorBtn, 'palette');
+    colorBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    colorBtn.addEventListener('click', (e) => {
+      const menu = new obsidian.Menu();
+      for (const c of COLORS) {
+        menu.addItem((mi) =>
+          mi.setTitle(c.name).onClick(() => {
+            state.color = c.value;
+            if (c.value) {
+              colorBtn.setCssStyles({ background: c.value, color: 'var(--text-on-accent)' });
+              wrap.setCssStyles({ background: c.value });
+            } else {
+              colorBtn.setCssStyles({ background: '', color: '' });
+              wrap.setCssStyles({ background: '' });
+            }
+          }),
+        );
+      }
+      menu.showAtMouseEvent(e);
+    });
+
+    actions.createDiv({ cls: 'keep-cards-capture-actions-spacer' });
+
+    const discardBtn = actions.createEl('button', {
+      cls: 'keep-cards-capture-discard',
+      text: 'Discard',
+      attr: { type: 'button', title: 'Discard (Esc)' },
+    });
+    discardBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    discardBtn.addEventListener('click', () => {
+      reset();
+      ta.blur();
+    });
+
+    const closeBtn = actions.createEl('button', {
+      cls: 'keep-cards-capture-close mod-cta',
+      text: 'Save',
+      attr: { type: 'button', title: 'Save note (⌘+Enter)' },
+    });
+    closeBtn.addEventListener('mousedown', (e) => e.preventDefault());
+
     const grow = () => {
       ta.setCssStyles({ height: 'auto' });
       ta.setCssStyles({ height: `${Math.min(ta.scrollHeight, 240)}px` });
     };
+
+    const reset = () => {
+      titleInput.value = '';
+      ta.value = '';
+      state.willPin = false;
+      state.color = null;
+      pinBtn.removeClass('is-active');
+      colorBtn.setCssStyles({ background: '', color: '' });
+      wrap.setCssStyles({ background: '' });
+      grow();
+    };
+
+    const submit = (): void => {
+      const title = titleInput.value.trim();
+      const body = ta.value;
+      if (!body.trim() && !title) {
+        ta.blur();
+        return;
+      }
+      const opts = { title, pin: state.willPin, color: state.color };
+      void this.captureNote(body, opts).then(() => {
+        reset();
+        ta.blur();
+      });
+    };
+
+    closeBtn.addEventListener('click', () => submit());
+
+    // Auto-save on focus loss (Keep behavior). 200ms grace period so popups
+    // (color menu, etc.) and quick focus jumps don't trigger a premature save.
+    let blurTimer: number | null = null;
+    wrap.addEventListener('focusout', () => {
+      if (blurTimer) window.clearTimeout(blurTimer);
+      blurTimer = window.setTimeout(() => {
+        blurTimer = null;
+        if (document.activeElement && wrap.contains(document.activeElement)) return;
+        submit();
+      }, 200);
+    });
+    wrap.addEventListener('focusin', () => {
+      if (blurTimer) {
+        window.clearTimeout(blurTimer);
+        blurTimer = null;
+      }
+    });
+
     ta.addEventListener('input', grow);
     ta.addEventListener('focus', grow);
     ta.addEventListener('blur', () => {
       ta.setCssStyles({ height: '' });
     });
-    ta.addEventListener('keydown', async (e) => {
+    ta.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        if (ta.value.trim()) {
-          await this.captureNote(ta.value);
-          ta.value = '';
-          grow();
-        }
-      } else if (e.key === 'Enter' && !e.shiftKey && ta.value.indexOf('\n') === -1 && ta.value.trim()) {
-        e.preventDefault();
-        await this.captureNote(ta.value);
-        ta.value = '';
-        grow();
+        submit();
+      } else if (e.key === 'Escape') {
+        reset();
+        ta.blur();
       }
     });
-    ta.addEventListener('paste', async (e) => {
+    titleInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        ta.focus();
+      } else if (e.key === 'Escape') {
+        reset();
+        titleInput.blur();
+      }
+    });
+
+    ta.addEventListener('paste', (e) => {
       const items = e.clipboardData && e.clipboardData.items;
       if (!items) return;
-      for (const item of items) {
+      for (const item of Array.from(items)) {
         if (item.type.startsWith('image/')) {
           e.preventDefault();
           const file = item.getAsFile();
           if (!file) continue;
-          try {
-            const buf = await file.arrayBuffer();
-            const ext = (item.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
-            const vaultAny = this.app.vault as unknown as {
-              getConfig?: (key: string) => string | undefined;
-            };
-            const folder = (vaultAny.getConfig && vaultAny.getConfig('attachmentFolderPath')) || '';
-            const safe = (folder || '').replace(/^\/+|\/+$/g, '');
-            const name = `Pasted ${Date.now()}.${ext}`;
-            const path = (safe ? safe + '/' : '') + name;
-            await this.app.vault.createBinary(path, buf);
-            const ins = `\n![[${path}]]`;
-            ta.value = ta.value + ins;
-            grow();
-          } catch (err) {
-            new obsidian.Notice('Paste failed: ' + err.message);
-          }
+          void (async () => {
+            try {
+              const buf = await file.arrayBuffer();
+              const ext = (item.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+              const vaultAny = this.app.vault as unknown as {
+                getConfig?: (key: string) => string | undefined;
+              };
+              const folder = (vaultAny.getConfig && vaultAny.getConfig('attachmentFolderPath')) || '';
+              const safe = (folder || '').replace(/^\/+|\/+$/g, '');
+              const name = `Pasted ${Date.now()}.${ext}`;
+              const path = (safe ? safe + '/' : '') + name;
+              await this.app.vault.createBinary(path, buf);
+              ta.value = ta.value + `\n![[${path}]]`;
+              grow();
+            } catch (err) {
+              new obsidian.Notice('Paste failed: ' + (err as Error).message);
+            }
+          })();
         }
       }
     });
@@ -758,11 +874,17 @@ class CardsView extends obsidian.ItemView {
 
     if (onWall.length === 0) {
       this.renderWallEmptyState(grid, wall);
-      this.renderWallFloatingActions(grid, wall);
       return;
     }
 
-    onWall.sort(this.getSortFn());
+    const sortFn = this.getSortFn();
+    onWall.sort((a, b) => {
+      const pa = this.isPinned(a) ? 0 : 1;
+      const pb = this.isPinned(b) ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      if (pa === 0) return this.pinOrderOf(a) - this.pinOrderOf(b);
+      return sortFn(a, b);
+    });
 
     const colCount = this.computeColumnCount(grid.clientWidth || 1200);
     const sec = grid.createDiv({ cls: 'keep-section' });
@@ -771,8 +893,6 @@ class CardsView extends obsidian.ItemView {
     layout.setColumnCount(colCount);
     this.layouts.set('wall', layout);
     this.addBatch(sec, layout, onWall);
-
-    this.renderWallFloatingActions(grid, wall);
   }
 
   renderWallEmptyState(grid: HTMLElement, wall: Wall): void {
@@ -798,20 +918,6 @@ class CardsView extends obsidian.ItemView {
       });
       fillBtn.addEventListener('click', () => this.fillWallFromCurrentFilter(wall));
     }
-  }
-
-  renderWallFloatingActions(grid: HTMLElement, wall: Wall): void {
-    const body = grid.parentElement;
-    if (!body) return;
-    const fab = body.createDiv({ cls: 'keep-wall-fab' });
-    fab.addEventListener('pointerdown', (e) => e.stopPropagation());
-
-    const addBtn = fab.createEl('button', {
-      cls: 'keep-wall-fab-btn keep-wall-fab-add',
-      attr: { type: 'button', 'aria-label': 'Add notes', title: 'Add notes to this wall' },
-    });
-    obsidian.setIcon(addBtn, 'plus');
-    addBtn.addEventListener('click', () => this.openAddToWallPicker(wall));
   }
 
   openAddToWallPicker(wall: Wall): void {
@@ -1861,10 +1967,16 @@ class CardsView extends obsidian.ItemView {
   }
 
   // -------------------- capture --------------------
-  async captureNote(content) {
+  async captureNote(
+    content: string,
+    opts?: { title?: string; pin?: boolean; color?: string | null },
+  ): Promise<void> {
     const folder = this.plugin.settings.notesFolder.trim();
-    const firstLine = content.trim().split('\n')[0].slice(0, 60);
-    const safe = firstLine.replace(/[\\/:*?"<>|#]/g, '').trim() || 'Untitled';
+    const explicitTitle = opts?.title?.trim();
+    const fallbackTitle = content.trim().split('\n')[0].slice(0, 60);
+    const safe = (explicitTitle || fallbackTitle || '')
+      .replace(/[\\/:*?"<>|#]/g, '')
+      .trim() || 'Untitled';
     const base = (folder ? folder + '/' : '') + safe;
 
     let path = base + '.md';
@@ -1880,7 +1992,25 @@ class CardsView extends obsidian.ItemView {
           /* folder may already exist */
         }
       }
-      await this.app.vault.create(path, content);
+      const created = await this.app.vault.create(path, content);
+      let dirty = false;
+      if (opts?.pin) {
+        if (!this.plugin.settings.pinnedFiles) this.plugin.settings.pinnedFiles = {};
+        const max = this.maxPinOrder();
+        this.plugin.settings.pinnedFiles[created.path] = max + 1;
+        dirty = true;
+      }
+      if (opts && opts.color !== undefined && opts.color !== null) {
+        if (!this.plugin.settings.cardColors) this.plugin.settings.cardColors = {};
+        this.plugin.settings.cardColors[created.path] = opts.color;
+        dirty = true;
+      }
+      if (isWallDensity(this.plugin.settings.density)) {
+        const wall = this.getOrCreateCurrentWall();
+        wall.positions[created.path] = { x: 0, y: 0, rotation: 0, z: 0 };
+        dirty = true;
+      }
+      if (dirty) await this.plugin.saveData(this.plugin.settings);
     } catch (err) {
       new obsidian.Notice('Could not create note: ' + (err as Error).message);
     }
@@ -2026,6 +2156,20 @@ class NotePreviewModal extends obsidian.Modal {
     this.rerender();
   }
 
+  applyNoteColor(): void {
+    const dataColor = (this.plugin.settings.cardColors || {})[this.file.path];
+    const fc = this.app.metadataCache.getFileCache(this.file);
+    const fmColor = fc && fc.frontmatter && fc.frontmatter.color;
+    const noteColor = dataColor !== undefined ? dataColor : fmColor;
+    if (noteColor) {
+      this.modalEl.addClass('has-note-color');
+      this.modalEl.setCssStyles({ background: String(noteColor) });
+    } else {
+      this.modalEl.removeClass('has-note-color');
+      this.modalEl.setCssStyles({ background: '' });
+    }
+  }
+
   rerender(): void {
     this.titleEl.empty();
     this.contentEl.empty();
@@ -2036,6 +2180,7 @@ class NotePreviewModal extends obsidian.Modal {
   renderHeader() {
     const isPinnedNow = this.view.isPinned(this.file);
     const isArchivedNow = this.view.isArchived(this.file);
+    this.applyNoteColor();
 
     const row = this.titleEl.createDiv({ cls: 'keep-modal-titlerow' });
     row.createDiv({ cls: 'keep-modal-title', text: this.file.basename });
