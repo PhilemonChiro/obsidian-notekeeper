@@ -696,7 +696,7 @@ class CardsView extends obsidian.ItemView {
     const discardBtn = actions.createEl('button', {
       cls: 'keep-cards-capture-discard',
       text: 'Discard',
-      attr: { type: 'button', title: 'Discard (Esc)' },
+      attr: { type: 'button', title: 'Discard (esc)' },
     });
     discardBtn.addEventListener('mousedown', (e) => e.preventDefault());
     discardBtn.addEventListener('click', () => {
@@ -750,7 +750,8 @@ class CardsView extends obsidian.ItemView {
       if (blurTimer) window.clearTimeout(blurTimer);
       blurTimer = window.setTimeout(() => {
         blurTimer = null;
-        if (document.activeElement && wrap.contains(document.activeElement)) return;
+        const doc = activeDocument;
+        if (doc.activeElement && wrap.contains(doc.activeElement)) return;
         submit();
       }, 200);
     });
