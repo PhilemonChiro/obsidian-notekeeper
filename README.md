@@ -1,12 +1,16 @@
 # Notekeeper
 
-A Google Keep–style masonry of cards for your Obsidian vault. Browse, capture, pin, color, archive, and filter your notes from one screen — without leaving the grid.
+A Google Keep–style wall of sticky notes for your Obsidian vault. Browse, capture, pin, color, and curate your notes on a sticky-note wall — or switch to a denser card grid when you need more density.
 
-![Grid view of notes laid out as a masonry of cards, with PINNED and OTHERS sections, varied colors, tags, and inline lists](docs/grid.png)
+![Wall view of notes as sticky notes with rotation, color tags, and pinned items at the top](docs/grid.png)
 
-Click any card to open a full markdown-rendered preview with one-click pin / edit / color / archive / open-in-tab actions:
+Capture a note with a title, body, optional pin, and color — saved to the wall in one click:
 
-![Note preview modal showing a Python code snippet with syntax highlighting](docs/modal.png)
+![Capture box expanded with title, body, pin and color buttons, and a primary Save action](docs/capture.png)
+
+Click any sticky for a full markdown-rendered preview that inherits the note's color:
+
+![Note preview modal in a colored note showing live markdown rendering and inline action buttons](docs/modal.png)
 
 ## Features
 
