@@ -2,7 +2,24 @@ import * as obsidian from 'obsidian';
 import type { TFile, WorkspaceLeaf } from 'obsidian';
 
 // ============================ TYPES ============================
-type Density = 'comfortable' | 'compact' | 'list';
+type Density = 'comfortable' | 'compact' | 'list' | 'wall' | 'wall-compact';
+
+type WallBackground =
+  | 'cork'
+  | 'whiteboard'
+  | 'slate'
+  | 'paper'
+  | 'graph'
+  | 'blueprint'
+  | 'linen'
+  | 'chalkboard';
+
+interface Wall {
+  id: string;
+  name: string;
+  /** Maps a file path → presence on this wall. Position values are vestigial from the freeform prototype. */
+  positions: Record<string, { x: number; y: number; rotation: number; z: number }>;
+}
 type SortMode =
   | 'mtime-desc'
   | 'mtime-asc'
@@ -25,6 +42,9 @@ interface KeepCardsSettings {
   showImages: boolean;
   autoCollapseSidebars: boolean;
   sortMode: SortMode;
+  walls: Record<string, Wall>;
+  currentWallId: string | null;
+  wallBackground: WallBackground;
 }
 
 interface ParsedQuery {
@@ -67,7 +87,7 @@ const COLORS: ColorDef[] = [
 const DEFAULT_SETTINGS: KeepCardsSettings = {
   notesFolder: '',
   previewLines: 10,
-  density: 'comfortable',
+  density: 'wall',
   colorAsBorder: false,
   tagColors: {},
   cardColors: {},
@@ -77,6 +97,9 @@ const DEFAULT_SETTINGS: KeepCardsSettings = {
   showImages: true,
   autoCollapseSidebars: true,
   sortMode: 'mtime-desc',
+  walls: {},
+  currentWallId: null,
+  wallBackground: 'slate',
 };
 
 const SORT_LABELS: Record<SortMode, string> = {
@@ -91,6 +114,22 @@ const SORT_LABELS: Record<SortMode, string> = {
 // ============================ HELPERS ============================
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hashString(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function makeWallId(): string {
+  return 'w' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+}
+
+function isWallDensity(d: Density): boolean {
+  return d === 'wall' || d === 'wall-compact';
 }
 
 function parseQuery(raw: string): ParsedQuery {
@@ -226,6 +265,15 @@ class KeepCardsPlugin extends obsidian.Plugin {
       callback: () => this.activateView(),
     });
     this.addCommand({
+      id: 'clear-wall',
+      name: 'Clear wall',
+      callback: () => {
+        const view = this.app.workspace.getLeavesOfType(VIEW_TYPE_CARDS)[0]?.view;
+        if (view instanceof CardsView) view.clearCurrentWall();
+        else new obsidian.Notice('Open the card view first.');
+      },
+    });
+    this.addCommand({
       id: 'manage-labels',
       name: 'Manage labels',
       callback: () => {
@@ -343,6 +391,16 @@ class KeepCardsPlugin extends obsidian.Plugin {
       if (view instanceof CardsView) view.scheduleRender();
     });
   }
+
+  // -------------------- walls --------------------
+  createWall(name: string): string {
+    if (!this.settings.walls) this.settings.walls = {};
+    const id = makeWallId();
+    this.settings.walls[id] = { id, name, positions: {} };
+    void this.saveData(this.settings);
+    return id;
+  }
+
 }
 
 // ============================ VIEW ============================
@@ -396,8 +454,8 @@ class CardsView extends obsidian.ItemView {
   getDisplayText(): string { return 'Card view'; }
   getIcon(): string { return 'layout-grid'; }
 
-  async onOpen() {
-    await this.render();
+  onOpen(): Promise<void> {
+    this.render();
     const refresh = () => {
       if (this.suppressEvents > 0) {
         this.suppressEvents--;
@@ -441,14 +499,18 @@ class CardsView extends obsidian.ItemView {
     if (this.plugin && this.plugin.handleActiveLeafChange) {
       this.plugin.handleActiveLeafChange(this.leaf);
     }
+    return Promise.resolve();
   }
 
-  async onClose() {
+  onClose(): Promise<void> {
     if (this.observer) this.observer.disconnect();
     if (this.resizeObs) this.resizeObs.disconnect();
+    if (this.batchObserver) this.batchObserver.disconnect();
     for (const c of this.cardComponents.values()) c.unload();
     this.cardComponents.clear();
     if (this.keydownHandler) this.containerEl.removeEventListener('keydown', this.keydownHandler);
+    this.contentEl.empty();
+    return Promise.resolve();
   }
 
   scheduleRender(): void {
@@ -456,7 +518,7 @@ class CardsView extends obsidian.ItemView {
     this.debounceTimer = window.setTimeout(() => { void this.render(); }, 200);
   }
 
-  async render(): Promise<void> {
+  render(): void {
     if (this.observer) this.observer.disconnect();
     if (this.resizeObs) this.resizeObs.disconnect();
     if (this.batchObserver) this.batchObserver.disconnect();
@@ -465,11 +527,13 @@ class CardsView extends obsidian.ItemView {
     this.cardComponents.clear();
     this.layouts.clear();
 
-    const container = this.containerEl.children[1];
+    const container = this.contentEl;
     container.empty();
     container.addClass('keep-cards-root');
-    container.toggleClass('density-compact', this.plugin.settings.density === 'compact');
-    container.toggleClass('density-list', this.plugin.settings.density === 'list');
+    const density = this.plugin.settings.density;
+    container.toggleClass('density-compact', density === 'compact' || density === 'wall-compact');
+    container.toggleClass('density-list', density === 'list');
+    container.toggleClass('density-wall', isWallDensity(density));
 
     const header = container.createDiv({ cls: 'keep-cards-header' });
     const topRow = header.createDiv({ cls: 'keep-cards-header-top' });
@@ -518,6 +582,13 @@ class CardsView extends obsidian.ItemView {
       },
       { root: grid, rootMargin: '600px' }
     );
+
+    if (isWallDensity(density)) {
+      this.renderWallView(grid, files);
+      this.attachResizeObserver(grid);
+      this.renderBulkActions(container);
+      return;
+    }
 
     const colCount = this.computeColumnCount(grid.clientWidth || container.clientWidth || 1200);
 
@@ -646,6 +717,130 @@ class CardsView extends obsidian.ItemView {
     });
   }
 
+  // -------------------- wall switcher / view --------------------
+  getOrCreateCurrentWall(): Wall {
+    const settings = this.plugin.settings;
+    if (!settings.walls) settings.walls = {};
+    let id = settings.currentWallId;
+    if (!id || !settings.walls[id]) {
+      id = this.firstWallId() ?? this.plugin.createWall('Wall');
+      settings.currentWallId = id;
+    }
+    return settings.walls[id];
+  }
+
+  firstWallId(): string | null {
+    const keys = Object.keys(this.plugin.settings.walls || {});
+    return keys.length ? keys[0] : null;
+  }
+
+  clearCurrentWall(): void {
+    const wall = this.getOrCreateCurrentWall();
+    new ConfirmModal(
+      this.app,
+      'Clear wall?',
+      'Removes every note from the wall. The notes themselves are not deleted.',
+      'Clear',
+      () => {
+        wall.positions = {};
+        void this.plugin.saveData(this.plugin.settings);
+        this.scheduleRender();
+      },
+    ).open();
+  }
+
+  renderWallView(grid: HTMLElement, files: TFile[]): void {
+    const wall = this.getOrCreateCurrentWall();
+    grid.addClass('is-wall');
+    grid.addClass(`wall-${this.plugin.settings.wallBackground}`);
+
+    const onWall = files.filter((f) => wall.positions[f.path]);
+
+    if (onWall.length === 0) {
+      this.renderWallEmptyState(grid, wall);
+      this.renderWallFloatingActions(grid, wall);
+      return;
+    }
+
+    onWall.sort(this.getSortFn());
+
+    const colCount = this.computeColumnCount(grid.clientWidth || 1200);
+    const sec = grid.createDiv({ cls: 'keep-section' });
+    const cols = sec.createDiv({ cls: 'keep-section-cols' });
+    const layout = new ColumnLayout(cols);
+    layout.setColumnCount(colCount);
+    this.layouts.set('wall', layout);
+    this.addBatch(sec, layout, onWall);
+
+    this.renderWallFloatingActions(grid, wall);
+  }
+
+  renderWallEmptyState(grid: HTMLElement, wall: Wall): void {
+    const empty = grid.createDiv({ cls: 'keep-wall-empty' });
+    empty.createDiv({ cls: 'keep-wall-empty-title', text: `"${wall.name}" is empty` });
+    empty.createDiv({
+      cls: 'keep-wall-empty-sub',
+      text: 'Walls are curated. Add the notes you want pinned to this wall.',
+    });
+    const row = empty.createDiv({ cls: 'keep-wall-empty-actions' });
+    const addBtn = row.createEl('button', {
+      cls: 'mod-cta',
+      text: 'Add notes…',
+      attr: { type: 'button' },
+    });
+    addBtn.addEventListener('click', () => this.openAddToWallPicker(wall));
+
+    const filterCount = this.collectFiles().length;
+    if (filterCount > 0 && filterCount <= 200) {
+      const fillBtn = row.createEl('button', {
+        text: `Fill from current view (${filterCount})`,
+        attr: { type: 'button' },
+      });
+      fillBtn.addEventListener('click', () => this.fillWallFromCurrentFilter(wall));
+    }
+  }
+
+  renderWallFloatingActions(grid: HTMLElement, wall: Wall): void {
+    const body = grid.parentElement;
+    if (!body) return;
+    const fab = body.createDiv({ cls: 'keep-wall-fab' });
+    fab.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+    const addBtn = fab.createEl('button', {
+      cls: 'keep-wall-fab-btn keep-wall-fab-add',
+      attr: { type: 'button', 'aria-label': 'Add notes', title: 'Add notes to this wall' },
+    });
+    obsidian.setIcon(addBtn, 'plus');
+    addBtn.addEventListener('click', () => this.openAddToWallPicker(wall));
+  }
+
+  openAddToWallPicker(wall: Wall): void {
+    new WallAddNotesModal(this.app, this.plugin, wall, (file: TFile) => {
+      wall.positions[file.path] = { x: 0, y: 0, rotation: 0, z: 0 };
+      void this.plugin.saveData(this.plugin.settings);
+      this.scheduleRender();
+    }).open();
+  }
+
+  fillWallFromCurrentFilter(wall: Wall): void {
+    const files = this.collectFiles();
+    for (const f of files) {
+      if (!wall.positions[f.path]) {
+        wall.positions[f.path] = { x: 0, y: 0, rotation: 0, z: 0 };
+      }
+    }
+    void this.plugin.saveData(this.plugin.settings);
+    this.scheduleRender();
+  }
+
+  removeFromCurrentWall(file: TFile): void {
+    const wall = this.getOrCreateCurrentWall();
+    if (!wall.positions[file.path]) return;
+    delete wall.positions[file.path];
+    void this.plugin.saveData(this.plugin.settings);
+    this.scheduleRender();
+  }
+
   renderArchiveToggle(parent) {
     const isArchive = this.filter.type === 'archive';
     const btn = parent.createEl('button', {
@@ -721,6 +916,8 @@ class CardsView extends obsidian.ItemView {
       { v: 'comfortable', icon: 'layout-grid', label: 'Comfortable' },
       { v: 'compact', icon: 'grid', label: 'Compact' },
       { v: 'list', icon: 'list', label: 'List' },
+      { v: 'wall', icon: 'sticky-note', label: 'Wall' },
+      { v: 'wall-compact', icon: 'columns-3', label: 'Wall (compact)' },
     ];
     for (const m of modes) {
       const btn = tb.createEl('button', {
@@ -960,10 +1157,10 @@ class CardsView extends obsidian.ItemView {
     }
   }
 
-  computeColumnCount(width) {
+  computeColumnCount(width: number): number {
     const d = this.plugin.settings.density;
     if (d === 'list') return 1;
-    if (d === 'compact') {
+    if (d === 'compact' || d === 'wall-compact') {
       if (width < 600) return 1;
       if (width < 900) return 3;
       if (width < 1200) return 4;
@@ -1098,6 +1295,12 @@ class CardsView extends obsidian.ItemView {
       this.openContextMenu(e, file);
     });
 
+    if (isWallDensity(this.plugin.settings.density)) {
+      const seed = hashString(file.path);
+      const rot = (seed % 7) - 3;
+      card.setCssStyles({ transform: `rotate(${rot}deg)` });
+      card.addClass('is-wall-card');
+    }
     layout.add(card, estimateHeight(file, fm, this.plugin.settings));
     this.observer.observe(card);
   }
@@ -1529,9 +1732,19 @@ class CardsView extends obsidian.ItemView {
         new obsidian.Notice('Embed copied');
       })
     );
+    if (isWallDensity(this.plugin.settings.density)) {
+      const wall = this.getOrCreateCurrentWall();
+      if (wall.positions[file.path]) {
+        menu.addSeparator();
+        menu.addItem((mi) =>
+          mi.setTitle('Remove from wall').setIcon('x').onClick(() => this.removeFromCurrentWall(file))
+        );
+      }
+    }
+
     menu.addSeparator();
     menu.addItem((mi) =>
-      mi.setTitle('Delete').setIcon('trash').onClick(async () => {
+      mi.setTitle('Delete note').setIcon('trash').onClick(async () => {
         try {
           await this.app.fileManager.trashFile(file);
           this.showUndoToast('Deleted', null);
@@ -1574,7 +1787,7 @@ class CardsView extends obsidian.ItemView {
       const cb = c.querySelector<HTMLInputElement>('.keep-card-checkbox');
       if (cb) cb.checked = sel;
     });
-    this.renderBulkActions(this.containerEl.children[1]);
+    this.renderBulkActions(this.contentEl);
   }
 
   renderBulkActions(parent) {
@@ -1622,7 +1835,7 @@ class CardsView extends obsidian.ItemView {
       menu.showAtMouseEvent(e);
     });
 
-    make('trash', 'Delete selected', async () => {
+    make('trash', 'Delete selected', () => {
       const paths = Array.from(this.selection);
       const message = `Delete ${paths.length} note${paths.length === 1 ? '' : 's'}?`;
       new ConfirmModal(this.app, 'Delete selected', message, 'Delete', async () => {
@@ -1992,6 +2205,41 @@ class NotePreviewModal extends obsidian.Modal {
   }
 }
 
+class WallAddNotesModal extends obsidian.FuzzySuggestModal<TFile> {
+  plugin: KeepCardsPlugin;
+  wall: Wall;
+  onChoose: (file: TFile) => void;
+
+  constructor(
+    app: obsidian.App,
+    plugin: KeepCardsPlugin,
+    wall: Wall,
+    onChoose: (file: TFile) => void,
+  ) {
+    super(app);
+    this.plugin = plugin;
+    this.wall = wall;
+    this.onChoose = onChoose;
+    this.setPlaceholder(`Add a note to "${wall.name}"…`);
+  }
+
+  getItems(): TFile[] {
+    const folder = (this.plugin.settings.notesFolder || '').trim();
+    return this.app.vault.getMarkdownFiles().filter((f) => {
+      if (folder && !f.path.startsWith(folder + '/') && f.path !== folder) return false;
+      return !this.wall.positions[f.path];
+    });
+  }
+
+  getItemText(item: TFile): string {
+    return item.basename + ' · ' + item.path;
+  }
+
+  onChooseItem(item: TFile): void {
+    this.onChoose(item);
+  }
+}
+
 class ConfirmModal extends obsidian.Modal {
   title: string;
   message: string;
@@ -2256,6 +2504,30 @@ class KeepCardsSettingTab extends obsidian.PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
+
+    new obsidian.Setting(containerEl)
+      .setName('Wall background')
+      .setDesc('Background texture used in wall mode.')
+      .addDropdown((dd) => {
+        const options: Record<WallBackground, string> = {
+          cork: 'Cork',
+          whiteboard: 'Whiteboard',
+          slate: 'Slate',
+          paper: 'Paper',
+          graph: 'Graph paper',
+          blueprint: 'Blueprint',
+          linen: 'Linen',
+          chalkboard: 'Chalkboard',
+        };
+        for (const k of Object.keys(options) as WallBackground[]) {
+          dd.addOption(k, options[k]);
+        }
+        dd.setValue(this.plugin.settings.wallBackground);
+        dd.onChange(async (v) => {
+          this.plugin.settings.wallBackground = v as WallBackground;
+          await this.plugin.saveSettings();
+        });
+      });
 
     new obsidian.Setting(containerEl)
       .setName('Show image thumbnails')

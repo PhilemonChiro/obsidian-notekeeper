@@ -51,7 +51,7 @@ var COLORS = [
 var DEFAULT_SETTINGS = {
   notesFolder: "",
   previewLines: 10,
-  density: "comfortable",
+  density: "wall",
   colorAsBorder: false,
   tagColors: {},
   cardColors: {},
@@ -60,7 +60,10 @@ var DEFAULT_SETTINGS = {
   pinnedHeader: true,
   showImages: true,
   autoCollapseSidebars: true,
-  sortMode: "mtime-desc"
+  sortMode: "mtime-desc",
+  walls: {},
+  currentWallId: null,
+  wallBackground: "slate"
 };
 var SORT_LABELS = {
   "mtime-desc": "Modified \xB7 newest",
@@ -72,6 +75,19 @@ var SORT_LABELS = {
 };
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function hashString(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = (h << 5) + h + s.charCodeAt(i) | 0;
+  }
+  return Math.abs(h);
+}
+function makeWallId() {
+  return "w" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+}
+function isWallDensity(d) {
+  return d === "wall" || d === "wall-compact";
 }
 function parseQuery(raw) {
   const parts = raw.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
@@ -186,6 +202,15 @@ var KeepCardsPlugin = class extends obsidian.Plugin {
       callback: () => this.activateView()
     });
     this.addCommand({
+      id: "clear-wall",
+      name: "Clear wall",
+      callback: () => {
+        const view = this.app.workspace.getLeavesOfType(VIEW_TYPE_CARDS)[0]?.view;
+        if (view instanceof CardsView) view.clearCurrentWall();
+        else new obsidian.Notice("Open the card view first.");
+      }
+    });
+    this.addCommand({
       id: "manage-labels",
       name: "Manage labels",
       callback: () => {
@@ -295,6 +320,14 @@ var KeepCardsPlugin = class extends obsidian.Plugin {
       if (view instanceof CardsView) view.scheduleRender();
     });
   }
+  // -------------------- walls --------------------
+  createWall(name) {
+    if (!this.settings.walls) this.settings.walls = {};
+    const id = makeWallId();
+    this.settings.walls[id] = { id, name, positions: {} };
+    void this.saveData(this.settings);
+    return id;
+  }
 };
 var CardsView = class extends obsidian.ItemView {
   constructor(leaf, plugin) {
@@ -329,8 +362,8 @@ var CardsView = class extends obsidian.ItemView {
   getIcon() {
     return "layout-grid";
   }
-  async onOpen() {
-    await this.render();
+  onOpen() {
+    this.render();
     const refresh = () => {
       if (this.suppressEvents > 0) {
         this.suppressEvents--;
@@ -372,13 +405,17 @@ var CardsView = class extends obsidian.ItemView {
     if (this.plugin && this.plugin.handleActiveLeafChange) {
       this.plugin.handleActiveLeafChange(this.leaf);
     }
+    return Promise.resolve();
   }
-  async onClose() {
+  onClose() {
     if (this.observer) this.observer.disconnect();
     if (this.resizeObs) this.resizeObs.disconnect();
+    if (this.batchObserver) this.batchObserver.disconnect();
     for (const c of this.cardComponents.values()) c.unload();
     this.cardComponents.clear();
     if (this.keydownHandler) this.containerEl.removeEventListener("keydown", this.keydownHandler);
+    this.contentEl.empty();
+    return Promise.resolve();
   }
   scheduleRender() {
     if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
@@ -386,7 +423,7 @@ var CardsView = class extends obsidian.ItemView {
       void this.render();
     }, 200);
   }
-  async render() {
+  render() {
     if (this.observer) this.observer.disconnect();
     if (this.resizeObs) this.resizeObs.disconnect();
     if (this.batchObserver) this.batchObserver.disconnect();
@@ -394,11 +431,13 @@ var CardsView = class extends obsidian.ItemView {
     for (const c of this.cardComponents.values()) c.unload();
     this.cardComponents.clear();
     this.layouts.clear();
-    const container = this.containerEl.children[1];
+    const container = this.contentEl;
     container.empty();
     container.addClass("keep-cards-root");
-    container.toggleClass("density-compact", this.plugin.settings.density === "compact");
-    container.toggleClass("density-list", this.plugin.settings.density === "list");
+    const density = this.plugin.settings.density;
+    container.toggleClass("density-compact", density === "compact" || density === "wall-compact");
+    container.toggleClass("density-list", density === "list");
+    container.toggleClass("density-wall", isWallDensity(density));
     const header = container.createDiv({ cls: "keep-cards-header" });
     const topRow = header.createDiv({ cls: "keep-cards-header-top" });
     this.renderSearch(topRow);
@@ -442,6 +481,12 @@ var CardsView = class extends obsidian.ItemView {
       },
       { root: grid, rootMargin: "600px" }
     );
+    if (isWallDensity(density)) {
+      this.renderWallView(grid, files);
+      this.attachResizeObserver(grid);
+      this.renderBulkActions(container);
+      return;
+    }
     const colCount = this.computeColumnCount(grid.clientWidth || container.clientWidth || 1200);
     const pinned = files.filter((f) => this.isPinned(f));
     const others = files.filter((f) => !this.isPinned(f));
@@ -556,6 +601,114 @@ var CardsView = class extends obsidian.ItemView {
       this.searchDebounce = window.setTimeout(() => this.scheduleRender(), 150);
     });
   }
+  // -------------------- wall switcher / view --------------------
+  getOrCreateCurrentWall() {
+    const settings = this.plugin.settings;
+    if (!settings.walls) settings.walls = {};
+    let id = settings.currentWallId;
+    if (!id || !settings.walls[id]) {
+      id = this.firstWallId() ?? this.plugin.createWall("Wall");
+      settings.currentWallId = id;
+    }
+    return settings.walls[id];
+  }
+  firstWallId() {
+    const keys = Object.keys(this.plugin.settings.walls || {});
+    return keys.length ? keys[0] : null;
+  }
+  clearCurrentWall() {
+    const wall = this.getOrCreateCurrentWall();
+    new ConfirmModal(
+      this.app,
+      "Clear wall?",
+      "Removes every note from the wall. The notes themselves are not deleted.",
+      "Clear",
+      () => {
+        wall.positions = {};
+        void this.plugin.saveData(this.plugin.settings);
+        this.scheduleRender();
+      }
+    ).open();
+  }
+  renderWallView(grid, files) {
+    const wall = this.getOrCreateCurrentWall();
+    grid.addClass("is-wall");
+    grid.addClass(`wall-${this.plugin.settings.wallBackground}`);
+    const onWall = files.filter((f) => wall.positions[f.path]);
+    if (onWall.length === 0) {
+      this.renderWallEmptyState(grid, wall);
+      this.renderWallFloatingActions(grid, wall);
+      return;
+    }
+    onWall.sort(this.getSortFn());
+    const colCount = this.computeColumnCount(grid.clientWidth || 1200);
+    const sec = grid.createDiv({ cls: "keep-section" });
+    const cols = sec.createDiv({ cls: "keep-section-cols" });
+    const layout = new ColumnLayout(cols);
+    layout.setColumnCount(colCount);
+    this.layouts.set("wall", layout);
+    this.addBatch(sec, layout, onWall);
+    this.renderWallFloatingActions(grid, wall);
+  }
+  renderWallEmptyState(grid, wall) {
+    const empty = grid.createDiv({ cls: "keep-wall-empty" });
+    empty.createDiv({ cls: "keep-wall-empty-title", text: `"${wall.name}" is empty` });
+    empty.createDiv({
+      cls: "keep-wall-empty-sub",
+      text: "Walls are curated. Add the notes you want pinned to this wall."
+    });
+    const row = empty.createDiv({ cls: "keep-wall-empty-actions" });
+    const addBtn = row.createEl("button", {
+      cls: "mod-cta",
+      text: "Add notes\u2026",
+      attr: { type: "button" }
+    });
+    addBtn.addEventListener("click", () => this.openAddToWallPicker(wall));
+    const filterCount = this.collectFiles().length;
+    if (filterCount > 0 && filterCount <= 200) {
+      const fillBtn = row.createEl("button", {
+        text: `Fill from current view (${filterCount})`,
+        attr: { type: "button" }
+      });
+      fillBtn.addEventListener("click", () => this.fillWallFromCurrentFilter(wall));
+    }
+  }
+  renderWallFloatingActions(grid, wall) {
+    const body = grid.parentElement;
+    if (!body) return;
+    const fab = body.createDiv({ cls: "keep-wall-fab" });
+    fab.addEventListener("pointerdown", (e) => e.stopPropagation());
+    const addBtn = fab.createEl("button", {
+      cls: "keep-wall-fab-btn keep-wall-fab-add",
+      attr: { type: "button", "aria-label": "Add notes", title: "Add notes to this wall" }
+    });
+    obsidian.setIcon(addBtn, "plus");
+    addBtn.addEventListener("click", () => this.openAddToWallPicker(wall));
+  }
+  openAddToWallPicker(wall) {
+    new WallAddNotesModal(this.app, this.plugin, wall, (file) => {
+      wall.positions[file.path] = { x: 0, y: 0, rotation: 0, z: 0 };
+      void this.plugin.saveData(this.plugin.settings);
+      this.scheduleRender();
+    }).open();
+  }
+  fillWallFromCurrentFilter(wall) {
+    const files = this.collectFiles();
+    for (const f of files) {
+      if (!wall.positions[f.path]) {
+        wall.positions[f.path] = { x: 0, y: 0, rotation: 0, z: 0 };
+      }
+    }
+    void this.plugin.saveData(this.plugin.settings);
+    this.scheduleRender();
+  }
+  removeFromCurrentWall(file) {
+    const wall = this.getOrCreateCurrentWall();
+    if (!wall.positions[file.path]) return;
+    delete wall.positions[file.path];
+    void this.plugin.saveData(this.plugin.settings);
+    this.scheduleRender();
+  }
   renderArchiveToggle(parent) {
     const isArchive = this.filter.type === "archive";
     const btn = parent.createEl("button", {
@@ -629,7 +782,9 @@ var CardsView = class extends obsidian.ItemView {
     const modes = [
       { v: "comfortable", icon: "layout-grid", label: "Comfortable" },
       { v: "compact", icon: "grid", label: "Compact" },
-      { v: "list", icon: "list", label: "List" }
+      { v: "list", icon: "list", label: "List" },
+      { v: "wall", icon: "sticky-note", label: "Wall" },
+      { v: "wall-compact", icon: "columns-3", label: "Wall (compact)" }
     ];
     for (const m of modes) {
       const btn = tb.createEl("button", {
@@ -846,7 +1001,7 @@ var CardsView = class extends obsidian.ItemView {
   computeColumnCount(width) {
     const d = this.plugin.settings.density;
     if (d === "list") return 1;
-    if (d === "compact") {
+    if (d === "compact" || d === "wall-compact") {
       if (width < 600) return 1;
       if (width < 900) return 3;
       if (width < 1200) return 4;
@@ -962,6 +1117,12 @@ var CardsView = class extends obsidian.ItemView {
       e.preventDefault();
       this.openContextMenu(e, file);
     });
+    if (isWallDensity(this.plugin.settings.density)) {
+      const seed = hashString(file.path);
+      const rot = seed % 7 - 3;
+      card.setCssStyles({ transform: `rotate(${rot}deg)` });
+      card.addClass("is-wall-card");
+    }
     layout.add(card, estimateHeight(file, fm, this.plugin.settings));
     this.observer.observe(card);
   }
@@ -1360,9 +1521,18 @@ var CardsView = class extends obsidian.ItemView {
         new obsidian.Notice("Embed copied");
       })
     );
+    if (isWallDensity(this.plugin.settings.density)) {
+      const wall = this.getOrCreateCurrentWall();
+      if (wall.positions[file.path]) {
+        menu.addSeparator();
+        menu.addItem(
+          (mi) => mi.setTitle("Remove from wall").setIcon("x").onClick(() => this.removeFromCurrentWall(file))
+        );
+      }
+    }
     menu.addSeparator();
     menu.addItem(
-      (mi) => mi.setTitle("Delete").setIcon("trash").onClick(async () => {
+      (mi) => mi.setTitle("Delete note").setIcon("trash").onClick(async () => {
         try {
           await this.app.fileManager.trashFile(file);
           this.showUndoToast("Deleted", null);
@@ -1402,7 +1572,7 @@ var CardsView = class extends obsidian.ItemView {
       const cb = c.querySelector(".keep-card-checkbox");
       if (cb) cb.checked = sel;
     });
-    this.renderBulkActions(this.containerEl.children[1]);
+    this.renderBulkActions(this.contentEl);
   }
   renderBulkActions(parent) {
     const existing = parent.querySelector(".keep-cards-bulk");
@@ -1446,7 +1616,7 @@ var CardsView = class extends obsidian.ItemView {
       }
       menu.showAtMouseEvent(e);
     });
-    make("trash", "Delete selected", async () => {
+    make("trash", "Delete selected", () => {
       const paths = Array.from(this.selection);
       const message = `Delete ${paths.length} note${paths.length === 1 ? "" : "s"}?`;
       new ConfirmModal(this.app, "Delete selected", message, "Delete", async () => {
@@ -1787,6 +1957,28 @@ var NotePreviewModal = class extends obsidian.Modal {
     this.contentEl.empty();
   }
 };
+var WallAddNotesModal = class extends obsidian.FuzzySuggestModal {
+  constructor(app, plugin, wall, onChoose) {
+    super(app);
+    this.plugin = plugin;
+    this.wall = wall;
+    this.onChoose = onChoose;
+    this.setPlaceholder(`Add a note to "${wall.name}"\u2026`);
+  }
+  getItems() {
+    const folder = (this.plugin.settings.notesFolder || "").trim();
+    return this.app.vault.getMarkdownFiles().filter((f) => {
+      if (folder && !f.path.startsWith(folder + "/") && f.path !== folder) return false;
+      return !this.wall.positions[f.path];
+    });
+  }
+  getItemText(item) {
+    return item.basename + " \xB7 " + item.path;
+  }
+  onChooseItem(item) {
+    this.onChoose(item);
+  }
+};
 var ConfirmModal = class extends obsidian.Modal {
   constructor(app, title, message, confirmLabel, onConfirm) {
     super(app);
@@ -1998,6 +2190,26 @@ var KeepCardsSettingTab = class extends obsidian.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
+    new obsidian.Setting(containerEl).setName("Wall background").setDesc("Background texture used in wall mode.").addDropdown((dd) => {
+      const options = {
+        cork: "Cork",
+        whiteboard: "Whiteboard",
+        slate: "Slate",
+        paper: "Paper",
+        graph: "Graph paper",
+        blueprint: "Blueprint",
+        linen: "Linen",
+        chalkboard: "Chalkboard"
+      };
+      for (const k of Object.keys(options)) {
+        dd.addOption(k, options[k]);
+      }
+      dd.setValue(this.plugin.settings.wallBackground);
+      dd.onChange(async (v) => {
+        this.plugin.settings.wallBackground = v;
+        await this.plugin.saveSettings();
+      });
+    });
     new obsidian.Setting(containerEl).setName("Show image thumbnails").setDesc("Render the first attached image at the top of each card.").addToggle(
       (t) => t.setValue(this.plugin.settings.showImages).onChange(async (v) => {
         this.plugin.settings.showImages = v;

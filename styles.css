@@ -273,6 +273,7 @@
   min-height: 0;
   overflow: hidden;
   padding: 12px 16px 16px;
+  position: relative;
 }
 
 /* ========== sidebar ========== */
@@ -1068,6 +1069,262 @@
 .keep-confirm-message {
   margin: 8px 0 4px;
   color: var(--text-muted);
+}
+
+/* ========== wall view ========== */
+.keep-cards-wall-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px 0 14px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  color: var(--text-normal);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  flex-shrink: 0;
+  max-width: 220px;
+}
+
+.keep-cards-wall-switcher:hover {
+  background: var(--background-modifier-hover);
+}
+
+.keep-cards-wall-switcher-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.keep-cards-wall-switcher-chev {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.keep-cards-wall-switcher-chev svg,
+.keep-cards-wall-switcher-chev .svg-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.keep-cards-grid.is-wall {
+  position: relative;
+  background-color: var(--background-secondary);
+  padding: 16px;
+}
+
+/* Backgrounds */
+
+/* Cork: layered dot textures + warm noise */
+.keep-cards-grid.wall-cork {
+  background-color: #8a5f3a;
+  background-image:
+    radial-gradient(rgba(255, 240, 220, 0.04) 0.7px, transparent 0.7px),
+    radial-gradient(rgba(40, 20, 0, 0.18) 1.2px, transparent 1.2px),
+    radial-gradient(rgba(60, 30, 5, 0.10) 1.6px, transparent 1.6px);
+  background-size: 5px 5px, 11px 11px, 19px 19px;
+  background-position: 0 0, 2px 3px, 5px 1px;
+}
+
+/* Whiteboard: clean light with crisp grid + a hairline major grid */
+.keep-cards-grid.wall-whiteboard {
+  background-color: #fafaf7;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
+}
+
+/* Slate: deep neutral with subtle grid */
+.keep-cards-grid.wall-slate {
+  background-color: #1f2227;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
+}
+
+/* Paper: warm beige, soft noise */
+.keep-cards-grid.wall-paper {
+  background-color: #fbf6e8;
+  background-image:
+    radial-gradient(rgba(102, 70, 30, 0.07) 1px, transparent 1.4px),
+    radial-gradient(rgba(102, 70, 30, 0.05) 0.8px, transparent 1.2px);
+  background-size: 14px 14px, 7px 7px;
+  background-position: 0 0, 3px 4px;
+}
+
+/* Graph paper: minor + major grid in a soft blue, white field */
+.keep-cards-grid.wall-graph {
+  background-color: #f6f9ff;
+  background-image:
+    linear-gradient(rgba(60, 110, 200, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(60, 110, 200, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(60, 110, 200, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(60, 110, 200, 0.18) 1px, transparent 1px);
+  background-size: 12px 12px, 12px 12px, 60px 60px, 60px 60px;
+}
+
+/* Blueprint: dark navy with crisp white grid (architect / maker) */
+.keep-cards-grid.wall-blueprint {
+  background-color: #163a5f;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+  background-size: 14px 14px, 14px 14px, 70px 70px, 70px 70px;
+}
+
+/* Linen: cross-hatched fabric weave */
+.keep-cards-grid.wall-linen {
+  background-color: #ede4d3;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(80, 60, 30, 0.05) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-45deg, rgba(80, 60, 30, 0.05) 0 1px, transparent 1px 4px),
+    radial-gradient(rgba(80, 60, 30, 0.04) 0.6px, transparent 0.8px);
+  background-size: auto, auto, 8px 8px;
+}
+
+/* Chalkboard: dark green with chalk dust + faint major grid */
+.keep-cards-grid.wall-chalkboard {
+  background-color: #2d3a2d;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.025) 0.8px, transparent 1.2px),
+    radial-gradient(rgba(255, 255, 255, 0.015) 0.5px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 6px 6px, 3px 3px, 80px 80px, 80px 80px;
+  background-position: 0 0, 2px 1px, 0 0, 0 0;
+}
+
+/* Cards on a wall: paper-feeling stickies in the masonry flow */
+.keep-cards-grid.is-wall .keep-card {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  transform-origin: 50% 50%;
+}
+
+.keep-cards-grid.is-wall .keep-card:hover {
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.42);
+  transform: rotate(0deg) translateY(-2px) !important;
+  z-index: 5;
+}
+
+/* Light wall backgrounds: lighter shadow against the lighter surface */
+.keep-cards-grid.wall-whiteboard .keep-card,
+.keep-cards-grid.wall-paper .keep-card,
+.keep-cards-grid.wall-graph .keep-card,
+.keep-cards-grid.wall-linen .keep-card {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.keep-cards-grid.wall-whiteboard .keep-card:hover,
+.keep-cards-grid.wall-paper .keep-card:hover,
+.keep-cards-grid.wall-graph .keep-card:hover,
+.keep-cards-grid.wall-linen .keep-card:hover {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+/* Empty state */
+.keep-wall-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.keep-wall-empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.keep-wall-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 420px;
+  line-height: 1.5;
+}
+
+.keep-wall-empty-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  pointer-events: auto;
+}
+
+/* Floating action buttons (bottom-right of wall — anchored to body, not viewport) */
+.keep-wall-fab {
+  position: absolute;
+  right: 28px;
+  bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.keep-wall-fab-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: background 0.12s ease, color 0.12s ease, transform 0.1s ease;
+}
+
+.keep-wall-fab-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  transform: translateY(-1px);
+}
+
+.keep-wall-fab-btn svg,
+.keep-wall-fab-btn .svg-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.keep-wall-fab-add {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: transparent;
+  width: 48px;
+  height: 48px;
+}
+
+.keep-wall-fab-add svg,
+.keep-wall-fab-add .svg-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.keep-wall-fab-add:hover {
+  background: var(--interactive-accent-hover);
+  color: var(--text-on-accent);
 }
 
 /* ========== batch sentinel ========== */
