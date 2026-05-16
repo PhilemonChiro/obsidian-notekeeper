@@ -44,7 +44,7 @@
 }
 
 .theme-light .keep-cards-search-wrap {
-  background: #fff;
+  background: #ffffff;
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
@@ -97,7 +97,7 @@
 
 .theme-light .keep-cards-sort-btn,
 .theme-light .keep-cards-toolbar {
-  background: #fff;
+  background: #ffffff;
   border-color: rgba(0, 0, 0, 0.14);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
@@ -234,7 +234,7 @@
 }
 
 .theme-light .keep-cards-capture-wrap {
-  background: #fff;
+  background: #ffffff;
   border-color: rgba(0, 0, 0, 0.14);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
@@ -791,7 +791,7 @@
 }
 
 .keep-card.has-card-color .keep-card-title {
-  color: #fff;
+  color: #ffffff;
 }
 
 .keep-card.has-card-color .keep-card-body,
@@ -832,7 +832,7 @@
 
 .keep-card.has-card-color .keep-card-tag:hover {
   background: rgba(0, 0, 0, 0.42);
-  color: #fff;
+  color: #ffffff;
 }
 
 .keep-card.has-card-color .keep-card-meta,
@@ -847,7 +847,7 @@
 
 .keep-card.has-card-color .keep-card-action:hover {
   background: rgba(0, 0, 0, 0.42);
-  color: #fff;
+  color: #ffffff;
 }
 
 .keep-card.has-card-color .keep-shimmer {
@@ -1166,7 +1166,7 @@
 }
 
 .keep-note-modal.has-note-color .keep-modal-title {
-  color: #fff;
+  color: #ffffff;
 }
 
 .keep-note-modal.has-note-color .keep-modal-action-btn {
@@ -1177,12 +1177,12 @@
 
 .keep-note-modal.has-note-color .keep-modal-action-btn:hover {
   background: rgba(0, 0, 0, 0.4) !important;
-  color: #fff !important;
+  color: #ffffff !important;
 }
 
 .keep-note-modal.has-note-color .keep-modal-editor {
   background: rgba(0, 0, 0, 0.2);
-  color: #fff;
+  color: #ffffff;
   border-color: rgba(255, 255, 255, 0.18);
 }
 
@@ -1778,7 +1778,7 @@
 
 /* Active filter chip — barely visible against light theme; punch it up */
 .theme-light .keep-cards-active-filter {
-  background: #fff;
+  background: #ffffff;
   border-color: rgba(0, 0, 0, 0.16);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   color: var(--text-normal);
@@ -1817,7 +1817,7 @@
 
 /* Bulk action floating bar — already styled, but light theme needs more shadow */
 .theme-light .keep-cards-bulk {
-  background: #fff;
+  background: #ffffff;
   border-color: rgba(0, 0, 0, 0.14);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
 }
@@ -1873,7 +1873,7 @@
 
 .keep-cards-capture-wrap.has-pick-color .keep-cards-capture-title,
 .keep-cards-capture-wrap.has-pick-color .keep-cards-capture {
-  color: #fff !important;
+  color: #ffffff !important;
 }
 
 .keep-cards-capture-wrap.has-pick-color .keep-cards-capture::placeholder,
@@ -1891,12 +1891,12 @@
 
 .keep-cards-capture-wrap.has-pick-color .keep-cards-capture-action:hover {
   background: rgba(0, 0, 0, 0.28);
-  color: #fff;
+  color: #ffffff;
 }
 
 .keep-cards-capture-wrap.has-pick-color .keep-cards-capture-action.is-active {
   background: rgba(0, 0, 0, 0.32);
-  color: #fff;
+  color: #ffffff;
 }
 
 .keep-cards-capture-wrap.has-pick-color .keep-cards-capture-discard {
@@ -1905,7 +1905,7 @@
 
 .keep-cards-capture-wrap.has-pick-color .keep-cards-capture-discard:hover {
   background: rgba(0, 0, 0, 0.28);
-  color: #fff;
+  color: #ffffff;
 }
 
 /* ============================================================
