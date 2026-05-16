@@ -431,6 +431,10 @@ var CardsView = class extends obsidian.ItemView {
     for (const c of this.cardComponents.values()) c.unload();
     this.cardComponents.clear();
     this.layouts.clear();
+    const active = activeDocument.activeElement;
+    const searchHadFocus = active instanceof HTMLInputElement && active.classList.contains("keep-cards-search");
+    const searchSelStart = searchHadFocus ? active.selectionStart : null;
+    const searchSelEnd = searchHadFocus ? active.selectionEnd : null;
     const container = this.contentEl;
     container.empty();
     container.addClass("keep-cards-root");
@@ -447,6 +451,15 @@ var CardsView = class extends obsidian.ItemView {
     this.renderToolbar(topRow);
     const captureRow = header.createDiv({ cls: "keep-cards-header-capture" });
     this.renderCapture(captureRow);
+    if (searchHadFocus) {
+      const newSearch = container.querySelector(".keep-cards-search");
+      if (newSearch) {
+        newSearch.focus();
+        if (searchSelStart !== null && searchSelEnd !== null) {
+          newSearch.setSelectionRange(searchSelStart, searchSelEnd);
+        }
+      }
+    }
     const body = container.createDiv({ cls: "keep-cards-body" });
     const grid = body.createDiv({ cls: "keep-cards-grid" });
     const files = this.collectFiles();

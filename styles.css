@@ -1,6 +1,6 @@
 /* ========== root ========== */
-.keep-cards-root {
-  padding: 0 !important;
+body .keep-cards-root {
+  padding: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -244,52 +244,47 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-/* Title field — collapsed by default, slides in when capture is focused */
-.keep-cards-capture-title {
+/* Title field — collapsed by default, slides in when capture is focused.
+   The `input.` tag prefix gives this rule specificity (0,0,2,1) so it wins
+   against Obsidian's `input[type="text"]` defaults without !important. */
+.keep-cards-capture-wrap input.keep-cards-capture-title {
   display: none;
-  padding: 14px 18px 10px !important;
-  border: none !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  color: var(--text-normal) !important;
-  font-size: 20px !important;
-  font-weight: 500 !important;
-  font-family: inherit !important;
-  outline: none !important;
+  padding: 14px 18px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--text-normal);
+  font-size: 20px;
+  font-weight: 500;
+  font-family: inherit;
+  outline: none;
   width: 100%;
   box-sizing: border-box;
-  line-height: 1.4 !important;
-  height: auto !important;
-  min-height: 0 !important;
+  line-height: 1.4;
+  height: auto;
+  min-height: 0;
 }
 
-.keep-cards-capture-title::placeholder {
-  font-weight: 500 !important;
-  font-size: 20px !important;
-  color: var(--text-faint) !important;
-}
-
-/* Divider between title and body, only when both visible */
-.keep-cards-capture-wrap:focus-within .keep-cards-capture-title {
-  border-bottom: 1px solid var(--background-modifier-border) !important;
-}
-
-.keep-cards-capture-title::placeholder {
+.keep-cards-capture-wrap input.keep-cards-capture-title::placeholder {
+  font-weight: 500;
+  font-size: 20px;
   color: var(--text-faint);
 }
 
-.keep-cards-capture-wrap:focus-within .keep-cards-capture-title {
+/* Divider between title and body, only when both visible */
+.keep-cards-capture-wrap:focus-within input.keep-cards-capture-title {
   display: block;
+  border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.keep-cards-capture {
+.keep-cards-capture-wrap textarea.keep-cards-capture {
   width: 100%;
   padding: 12px 18px;
-  border: none !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
   color: var(--text-normal);
   font-size: 14px;
   resize: none;
@@ -1023,10 +1018,10 @@
   color: var(--text-accent);
 }
 
-.keep-cards-bulk-btn svg,
-.keep-cards-bulk-btn .svg-icon {
-  width: 20px !important;
-  height: 20px !important;
+.keep-cards-bulk .keep-cards-bulk-btn svg,
+.keep-cards-bulk .keep-cards-bulk-btn .svg-icon {
+  width: 20px;
+  height: 20px;
 }
 
 /* ========== undo toast ========== */
@@ -1113,12 +1108,15 @@
 }
 
 /* ========== reduced motion ========== */
+/* These selectors match the same specificity (0,0,1,0) as the base rules
+   that declare the transitions/animations they suppress; the later source
+   position lets them win without !important. */
 @media (prefers-reduced-motion: reduce) {
   .keep-card,
   .keep-card-actions,
   .keep-shimmer {
-    transition: none !important;
-    animation: none !important;
+    transition: none;
+    animation: none;
   }
 }
 
@@ -1141,8 +1139,8 @@
 /* When the note has a color, paint the modal in it and make the inner content
    transparent so the color shows through. Keep .modal-bg (the dim backdrop)
    alone so the rest of the UI stays dimmed behind the modal. */
-.keep-note-modal.has-note-color .modal-content {
-  background: transparent !important;
+.modal.keep-note-modal.has-note-color .modal-content {
+  background: transparent;
 }
 
 .keep-note-modal.has-note-color .keep-modal-md {
@@ -1169,15 +1167,15 @@
   color: #ffffff;
 }
 
-.keep-note-modal.has-note-color .keep-modal-action-btn {
-  background: rgba(0, 0, 0, 0.22) !important;
-  color: rgba(255, 255, 255, 0.92) !important;
-  border: none !important;
+.modal.keep-note-modal.has-note-color .keep-modal-action-btn {
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+  border: none;
 }
 
-.keep-note-modal.has-note-color .keep-modal-action-btn:hover {
-  background: rgba(0, 0, 0, 0.4) !important;
-  color: #ffffff !important;
+.modal.keep-note-modal.has-note-color .keep-modal-action-btn:hover {
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
 }
 
 .keep-note-modal.has-note-color .keep-modal-editor {
@@ -1563,9 +1561,9 @@
   filter: blur(2px);
 }
 
-.keep-cards-grid.is-wall .keep-card:hover {
+body .keep-cards-grid.is-wall .keep-card:hover {
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.42);
-  transform: rotate(0deg) translateY(-2px) !important;
+  transform: rotate(0deg) translateY(-2px);
   z-index: 5;
 }
 
@@ -1871,18 +1869,18 @@
  * Same logic as has-card-color on the cards / has-note-color on the modal.
  * ============================================================ */
 
-.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-title,
-.keep-cards-capture-wrap.has-pick-color .keep-cards-capture {
-  color: #ffffff !important;
+.keep-cards-capture-wrap.has-pick-color input.keep-cards-capture-title,
+.keep-cards-capture-wrap.has-pick-color textarea.keep-cards-capture {
+  color: #ffffff;
 }
 
-.keep-cards-capture-wrap.has-pick-color .keep-cards-capture::placeholder,
-.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-title::placeholder {
-  color: rgba(255, 255, 255, 0.6) !important;
+.keep-cards-capture-wrap.has-pick-color textarea.keep-cards-capture::placeholder,
+.keep-cards-capture-wrap.has-pick-color input.keep-cards-capture-title::placeholder {
+  color: rgba(255, 255, 255, 0.6);
 }
 
-.keep-cards-capture-wrap.has-pick-color .keep-cards-capture-title {
-  border-bottom-color: rgba(255, 255, 255, 0.18) !important;
+.keep-cards-capture-wrap.has-pick-color input.keep-cards-capture-title {
+  border-bottom-color: rgba(255, 255, 255, 0.18);
 }
 
 .keep-cards-capture-wrap.has-pick-color .keep-cards-capture-action {

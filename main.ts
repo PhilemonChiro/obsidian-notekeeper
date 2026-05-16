@@ -528,6 +528,13 @@ class CardsView extends obsidian.ItemView {
     this.cardComponents.clear();
     this.layouts.clear();
 
+    // Preserve search-box focus across the rebuild — without this, the user
+    // loses focus mid-typing whenever the debounced render fires.
+    const active = activeDocument.activeElement;
+    const searchHadFocus = active instanceof HTMLInputElement && active.classList.contains('keep-cards-search');
+    const searchSelStart = searchHadFocus ? active.selectionStart : null;
+    const searchSelEnd = searchHadFocus ? active.selectionEnd : null;
+
     const container = this.contentEl;
     container.empty();
     container.addClass('keep-cards-root');
@@ -545,6 +552,16 @@ class CardsView extends obsidian.ItemView {
     this.renderToolbar(topRow);
     const captureRow = header.createDiv({ cls: 'keep-cards-header-capture' });
     this.renderCapture(captureRow);
+
+    if (searchHadFocus) {
+      const newSearch = container.querySelector<HTMLInputElement>('.keep-cards-search');
+      if (newSearch) {
+        newSearch.focus();
+        if (searchSelStart !== null && searchSelEnd !== null) {
+          newSearch.setSelectionRange(searchSelStart, searchSelEnd);
+        }
+      }
+    }
 
     const body = container.createDiv({ cls: 'keep-cards-body' });
     const grid = body.createDiv({ cls: 'keep-cards-grid' });
