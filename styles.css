@@ -802,7 +802,6 @@ body .keep-cards-root {
 .keep-card.has-card-color .keep-card-body a {
   color: rgba(255, 255, 255, 0.92);
   text-decoration: underline;
-  text-decoration-color: rgba(255, 255, 255, 0.4);
 }
 
 .keep-card.has-card-color .keep-card-body code {

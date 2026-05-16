@@ -46,6 +46,7 @@ interface KeepCardsSettings {
   walls: Record<string, Wall>;
   currentWallId: string | null;
   wallBackground: WallBackground;
+  wallFlat: boolean;
 }
 
 interface ParsedQuery {
@@ -101,6 +102,7 @@ const DEFAULT_SETTINGS: KeepCardsSettings = {
   walls: {},
   currentWallId: null,
   wallBackground: 'theme',
+  wallFlat: false,
 };
 
 const SORT_LABELS: Record<SortMode, string> = {
@@ -1428,9 +1430,11 @@ class CardsView extends obsidian.ItemView {
     });
 
     if (isWallDensity(this.plugin.settings.density)) {
-      const seed = hashString(file.path);
-      const rot = (seed % 7) - 3;
-      card.setCssStyles({ transform: `rotate(${rot}deg)` });
+      if (!this.plugin.settings.wallFlat) {
+        const seed = hashString(file.path);
+        const rot = (seed % 7) - 3;
+        card.setCssStyles({ transform: `rotate(${rot}deg)` });
+      }
       card.addClass('is-wall-card');
     }
     layout.add(card, estimateHeight(file, fm, this.plugin.settings));
@@ -2702,6 +2706,16 @@ class KeepCardsSettingTab extends obsidian.PluginSettingTab {
           await this.plugin.saveSettings();
         });
       });
+
+    new obsidian.Setting(containerEl)
+      .setName('Flat sticky notes')
+      .setDesc('Disable the slight rotation on wall cards. Notes sit perfectly straight.')
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.wallFlat).onChange(async (v) => {
+          this.plugin.settings.wallFlat = v;
+          await this.plugin.saveSettings();
+        })
+      );
 
     new obsidian.Setting(containerEl)
       .setName('Show image thumbnails')
